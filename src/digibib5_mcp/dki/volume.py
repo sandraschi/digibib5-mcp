@@ -140,11 +140,27 @@ class DigibibVolume:
 
     @staticmethod
     def _content_region(rec: bytes) -> bytes:
-        """Strip the leading header+source-path and trailing source-path marker."""
-        p = rec.find(b".txt")
-        start = p + 4 if p != -1 else 6
-        q = rec.rfind(b"#q:")
-        end = q if q > start else len(rec)
+        """Return the word-stream body, stripping the ``#q:...txt`` source-path
+        marker(s).
+
+        Most records carry the marker at the END (``...body... #q:\\path\\x.txt``).
+        A few carry a source-path header at the START instead. The word-stream
+        body sits between. The codec (decode_tokens) resyncs over the few header
+        control bytes, so a slightly generous start is harmless; the critical
+        thing is not to chop the body, which the old logic did by treating the
+        trailing ``.txt`` as a leading header marker.
+        """
+        end = rec.rfind(b"#q:")
+        if end <= 0:
+            end = len(rec)
+        start = 0
+        # Strip a LEADING source-path header only when the record actually opens
+        # with one (a '#q:' that precedes the first '.txt' and is earlier than
+        # the trailing marker).
+        first_txt = rec.find(b".txt")
+        lead_q = rec.find(b"#q:")
+        if first_txt != -1 and first_txt < end and 0 <= lead_q < first_txt and lead_q < end:
+            start = first_txt + 4
         return rec[start:end]
 
     def record_text(self, i: int) -> str:

@@ -19,7 +19,13 @@ this as byte-exact yet.
 
 from __future__ import annotations
 
+import re
+
 CP = "cp1252"
+
+# Leading running-head / stylesheet tag that opens most records, e.g.
+# "rororo-Hoffmann" or "Hoffmann-PW Bd. 1". Not body text - dropped.
+_RUNNING_HEAD = re.compile(r"^[A-Za-z0-9À-ſ]+-[A-Za-z0-9À-ſ]+( Bd\. \d+)?$")
 
 # Punctuation that attaches to the previous word (no leading space).
 _ATTACH = set(".,;:!?)]}»")
@@ -36,7 +42,11 @@ def decode_tokens(buf: bytes) -> list[tuple]:
         b = buf[i]
         if 1 <= b <= 63 and i + 1 + b <= n:
             chunk = buf[i + 1 : i + 1 + b]
-            if chunk and all(9 <= c < 127 or c >= 160 for c in chunk):
+            # Printable CP1252 only. Allowing 9..31 (as a first pass did) let
+            # formatting opcodes 0x09/0x0b/0x0c/0x0e-0x12 masquerade as 1-char
+            # words and leak into the text as control glyphs. A real word is
+            # ASCII-printable or high-CP1252 (>=160).
+            if chunk and all(32 <= c < 127 or c >= 160 for c in chunk):
                 j = i + 1 + b
                 punct = bytearray()
                 while j < n and buf[j] in _INLINE_PUNCT:
@@ -79,4 +89,11 @@ def render_text(tokens: list[tuple]) -> str:
 
 def decode_record_content(content: bytes) -> str:
     """Convenience: tokenize + render a record's content region to text."""
-    return render_text(decode_tokens(content))
+    tokens = decode_tokens(content)
+    # Drop a leading running-head / stylesheet tag if present.
+    for idx, t in enumerate(tokens):
+        if t[0] == "word":
+            if _RUNNING_HEAD.match(t[1]):
+                tokens = tokens[idx + 1 :]
+            break
+    return render_text(tokens)
