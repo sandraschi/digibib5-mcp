@@ -18,3 +18,13 @@ uv.lock
 reports/
 temp/
 .env
+
+# webapp
+node_modules/
+web_sota/dist/
+web_sota/node_modules/
+
+# packaging
+*.mcpb
+mcpb/src/
+dist/

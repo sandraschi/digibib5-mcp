@@ -1,5 +1,33 @@
 # digibib5-mcp - latest changes
 
+## 0.1.2 (2026-10-26) - codec v2: flowing text
+
+Chapters rendered as ~64-char ragged print lines (every soft `0x02` break
+preserved). The codec now reflows: single breaks become spaces, `0x15`-led /
+multi-`0x02` / `04`-led breaks become paragraphs. Also: page running-heads
+(`0x13`-introduced `Hoffmann-PW Bd. N` / `rororo-*`, ~5.9k per volume) dropped
+everywhere; line-split hyphenation re-joined (~38k in DB008, uppercase keeps
+its hyphen); lone `0x2D` kept as spaced dash; `8B`/`9B` literal spans rescued
+(italic/literal words were silently dropped); glued opening quotes split
+(`hoffw1«Meister` -> `hoffw1 «Meister`); cross-record hyphen/dash joins.
+`render_text` output is flowing paragraphs; `node_text` joins records with a
+soft break and post-processes the whole chapter. Reader webapp: book-like
+measure (68ch), justified serif body with automatic German hyphenation.
+Open: 0x0E block markers, 0x0C block ends, heading levels, italics.
+
+## 0.1.1 (2026-10-26) - TREE.DKA mapping solved
+
+TOC clicks rendered the wrong chapter: `_load_toc` read the LAST N u32s of
+TREE.DKA as the node table, but the real table sits mid-file (structural prefix
+before it, tail data after). It is a 1-based start-record run for every node
+but the volume root (monotonic, ending in record-count + 1, verified across
+DB003/004/005/007/008), with `record = entry - 1` and root at record 0.
+`node_text` now returns the node's full chapter extent (until the next
+non-descendant node, capped at 100 records / 300k chars) with `record_end` /
+`records_total` / `truncated` metadata, and the reader webapp shows the record
+range. Also fixed: `.txi` / `.txx` source-path markers leaked into decoded text
+(marker regex is now `.tx` + one alphanum).
+
 ## 0.1.0 (2026-10-26) - initial stand-up
 
 First scaffold of the Digitale Bibliothek 5 reader clone, seeded with the

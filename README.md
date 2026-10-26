@@ -3,8 +3,8 @@
 A clone-in-progress of the **Digitale Bibliothek 5** reader (Directmedia /
 Digitale Bibliothek), built on a from-scratch reverse-engineering of its `.DKI`
 volume format. It reads the original CD-ROM images - volume list, table of
-contents, and decoded text - and exposes them over MCP, with a reader webapp to
-follow.
+contents, and decoded text - and exposes them over MCP and REST, with a
+reader webapp.
 
 The `.DKI` format was reversed from the real discs (see
 [reversing-mcp `docs/DIGIBIB5_DKI_FORMAT.md`](https://github.com/sandraschi/reversing-mcp/blob/master/docs/DIGIBIB5_DKI_FORMAT.md)).
@@ -21,11 +21,18 @@ Early. What works today:
   and a React/Vite/Tailwind reader renders the volume picker, TOC tree, and text.
 
 Known **v1 / approximate** (tracked, to refine against the Digibib5 oracle):
-- The text codec's exact control-opcode grammar (spacing, headings, italics,
-  links). Output is readable but not yet byte-faithful.
-- The `TREE.DKA` node -> record mapping (currently a heuristic slice).
+- The text codec's exact control-opcode grammar (heading levels, italics,
+  links). Paragraph structure, running-head removal, de-hyphenation, spaced
+  dashes, literal spans and reflowed line breaks are mapped (v2); output is
+  flowing text but not yet byte-faithful.
 - Images (`IMAGES\*.BMP` / `images.lib`) and the search indexes
   (`INDEX.*` / `LINKS.*`) are not wired up yet.
+
+Solved 2026-10-26: the `TREE.DKA` node -> record mapping. The table is a
+1-based start-record run for every node but the volume root (root starts at
+record 0), located by monotonic-run scan. Clicking a TOC entry now renders the
+whole chapter (all records until the next non-descendant node, capped at 100);
+`node_text` reports `record` / `record_end` / `records_total` / `truncated`.
 
 ## Format, in brief
 
@@ -35,7 +42,7 @@ A volume is a `data\` folder:
 |------|------|
 | `DIGIBIB.TXT` | INI descriptor (identity shown in the CD picker) |
 | `TREE.DKI` | TOC as indented CP1252 text (leading spaces = depth) |
-| `TREE.DKA` | u32 table mapping each TOC node to a record index |
+| `TREE.DKA` | u32 node -> record table (1-based run for all nodes but the root; see CONFIGURATION) |
 | `TEXT.DKI` | `[u32 count][u32 offset table][records]`; each record length-prefixed, content is a tokenized word stream |
 | `INDEX.*`, `LINKS.*` | search / cross-reference indexes (later) |
 | `IMAGES\1..4\*.BMP` | page images at 4 zoom levels (later) |
@@ -51,6 +58,10 @@ digibib(operation="toc", volume_id="DB008", max_depth=3)
 digibib(operation="node_text", volume_id="DB008", node_index=5)
 digibib(operation="record_text", volume_id="DB008", record_index=0)
 ```
+
+`node_text` returns the node's full chapter extent (`record`..`record_end`,
+`records_total`, `truncated` when capped at 100 records); `record_text` reads
+one raw `TEXT.DKI` record.
 
 The install root defaults to `K:\Digitale Bibliothek\Bibliothek` (override with
 the `DIGIBIB_ROOT` env var or the `root` argument).
@@ -86,10 +97,11 @@ proxies `/api` to the backend.
 ## Reader webapp
 
 `web_sota/` - React 18 + Vite 6 + Tailwind 4 (Bun). Three panes: a CD-ROM volume
-picker, a collapsible TOC tree, and a content pane. A "jump to #" record browser
-reads `TEXT.DKI` records directly, which is handy while the `TREE.DKA`
-node -> record mapping is still approximate. Ports: 14114 (frontend) / 14115
-(backend REST + MCP HTTP).
+picker, a collapsible TOC tree, and a content pane rendering flowing chapter
+text (book-like measure, justified serif). A "jump to #" record browser reads
+`TEXT.DKI` records directly - handy for volumes without a `TREE.DKA` mapping
+(e.g. DB012) and for inspecting raw records. Ports: 14114 (frontend) / 14115
+(backend REST).
 
 ## Packaging
 
