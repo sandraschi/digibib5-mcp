@@ -1,5 +1,14 @@
 # digibib5-mcp - latest changes
 
+## 0.3.0 (2026-10-26) - figures
+
+`IMAGES/1..4/*.BMP` served as `image/bmp` (`images` op, `/api/.../images`,
+`/api/.../image/{level}/{name}`, traversal-guarded). `node_text` carries
+`images` (per-chapter figure refs scanned from raw records) + `image_levels`;
+the reader shows a thumbnail strip linking to full size. DB008: 53 figures,
+levels 1-4 (L4 missing 5 - 404s expected). Audio (`VORTRAG.DAT`,
+`hoffwNN.wav`) lives on separate audio CDs, refs stay as text.
+
 ## 0.2.0 (2026-10-26) - full-text search
 
 `digibib(operation="search")` + REST `/api/volume/{id}/search` + reader search
