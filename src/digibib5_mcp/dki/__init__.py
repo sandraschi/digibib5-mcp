@@ -13,16 +13,19 @@ codec is v1/approximate (codec.py). Public API:
     vol.node_text(node_index)              # decoded text for a TOC node
 """
 
-from .codec import decode_record_content, decode_tokens, render_text
+from .codec import decode_record_content, decode_tokens, postprocess_text, render_text
 from .library import DigibibLibrary, VolumeRef
-from .volume import DigibibVolume, TocNode
+from .volume import MAX_NODE_CHARS, MAX_NODE_RECORDS, DigibibVolume, TocNode
 
 __all__ = [
     "DigibibLibrary",
     "VolumeRef",
     "DigibibVolume",
     "TocNode",
+    "MAX_NODE_RECORDS",
+    "MAX_NODE_CHARS",
     "decode_tokens",
     "render_text",
+    "postprocess_text",
     "decode_record_content",
 ]

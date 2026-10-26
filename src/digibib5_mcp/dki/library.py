@@ -20,9 +20,9 @@ DEFAULT_ROOT = r"K:\Digitale Bibliothek\Bibliothek"
 
 @dataclass
 class VolumeRef:
-    id: str          # folder name, e.g. "DB008"
-    data_dir: str    # absolute path to the data folder
-    title: str       # from DIGIBIB.TXT Caption, else the id
+    id: str  # folder name, e.g. "DB008"
+    data_dir: str  # absolute path to the data folder
+    title: str  # from DIGIBIB.TXT Caption, else the id
 
 
 class DigibibLibrary:
@@ -41,9 +41,7 @@ class DigibibLibrary:
         # fallback: any immediate subdir holding DIGIBIB.TXT
         if vol_dir.is_dir():
             for d in vol_dir.iterdir():
-                if d.is_dir() and any(
-                    (d / n).exists() for n in ("DIGIBIB.TXT", "digibib.txt")
-                ):
+                if d.is_dir() and any((d / n).exists() for n in ("DIGIBIB.TXT", "digibib.txt")):
                     return d
         return None
 
