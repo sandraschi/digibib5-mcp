@@ -156,6 +156,22 @@ async def record_text(request: Request) -> JSONResponse:
     return JSONResponse({"success": True, "volume_id": vid, "record_index": idx, "text": text})
 
 
+async def search(request: Request) -> JSONResponse:
+    try:
+        vol, vid = _open(request)
+    except KeyError as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=404)
+    q = request.query_params.get("q", "")
+    if not q.strip():
+        return JSONResponse({"success": False, "error": "search needs ?q=."}, status_code=400)
+    try:
+        lim = int(request.query_params.get("limit", "20"))
+    except ValueError:
+        lim = 20
+    hits = vol.search(q, lim)
+    return JSONResponse({"success": True, "volume_id": vid, "query": q, "count": len(hits), "results": hits})
+
+
 routes = [
     Route("/api/health", health),
     Route("/api/volumes", volumes),
@@ -163,6 +179,7 @@ routes = [
     Route("/api/volume/{vid}/toc", toc),
     Route("/api/volume/{vid}/node/{idx:int}/text", node_text),
     Route("/api/volume/{vid}/record/{idx:int}/text", record_text),
+    Route("/api/volume/{vid}/search", search),
 ]
 
 middleware = [

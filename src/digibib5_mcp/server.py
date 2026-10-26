@@ -17,7 +17,7 @@ from pydantic import Field
 
 from .dki import MAX_NODE_RECORDS, DigibibLibrary
 
-mcp = FastMCP("digibib5-mcp", version="0.1.0")
+mcp = FastMCP("digibib5-mcp", version="0.2.0")
 
 
 def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
 def digibib(
     operation: Annotated[
         str,
-        Field(description="list_volumes | descriptor | toc | node_text | record_text"),
+        Field(description="list_volumes | descriptor | toc | node_text | record_text | search"),
     ] = "list_volumes",
     volume_id: Annotated[
         str | None, Field(description="Volume folder id, e.g. 'DB008' (all ops except list_volumes).")
@@ -48,6 +48,10 @@ def digibib(
     node_index: Annotated[int | None, Field(description="toc node index (node_text).")] = None,
     record_index: Annotated[int | None, Field(description="record index (record_text).")] = None,
     max_depth: Annotated[int | None, Field(description="toc: limit nesting depth.")] = None,
+    query: Annotated[
+        str | None, Field(description='search: FTS5 query (words, AND/OR/NOT, "phrase", prefix*).')
+    ] = None,
+    limit: Annotated[int | None, Field(description="search: max hits (default 20, max 100).")] = None,
     root: Annotated[
         str | None, Field(description="Override the install root (default DIGIBIB_ROOT or K:\\...).")
     ] = None,
@@ -60,10 +64,14 @@ def digibib(
     - `descriptor`    -> the volume's DIGIBIB.TXT identity keys.
     - `toc`           -> the table of contents as a nested tree (node index +
                          record index per node). Use max_depth to trim.
-    - `node_text`     -> decoded text for a TOC node (via its record).
+    - `node_text`     -> decoded text for a TOC node: the full chapter extent
+                         (record..record_end, records_total, truncated flag).
     - `record_text`   -> decoded text for a raw TEXT.DKI record index.
+    - `search`        -> full-text search over decoded text (needs query):
+                         [{record, node_index, chapter, snippet}]. First search
+                         per volume builds an FTS cache (~10 s), then instant.
 
-    NOTE: text decode and the node->record mapping are v1/approximate; output is
+    NOTE: text decode is v2 (flowing paragraphs, heads dropped); output is
     readable but not yet byte-faithful.
     """
     lib = DigibibLibrary(root=root)
@@ -123,6 +131,17 @@ def digibib(
             "truncated": total > MAX_NODE_RECORDS,
             "text": vol.node_text(node_index),
         }
+    if op == "search":
+        if not query or not query.strip():
+            return {"success": False, "error": "search needs query."}
+        hits = vol.search(query, limit or 20)
+        return {
+            "success": True,
+            "volume_id": volume_id,
+            "query": query,
+            "count": len(hits),
+            "results": hits,
+        }
     if op == "record_text":
         if record_index is None:
             return {"success": False, "error": "record_text needs record_index."}
@@ -138,7 +157,7 @@ def digibib(
 
     return {
         "success": False,
-        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text.",
+        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text, search.",
     }
 
 

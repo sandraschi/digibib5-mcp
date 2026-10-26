@@ -7,10 +7,62 @@ discs mounted), so CI without the discs still passes.
 
 from __future__ import annotations
 
+import struct
+
 import pytest
 
 from digibib5_mcp.dki import DigibibLibrary, decode_record_content, decode_tokens
+from digibib5_mcp.dki.search import ensure_built, search_records
 from digibib5_mcp.dki.volume import DigibibVolume
+
+
+def _word(text: str) -> bytes:
+    raw = text.encode("cp1252")
+    return bytes([len(raw)]) + raw + b"\x00"
+
+
+def _make_volume(tmp_path, records: list[bytes]):
+    """Minimal on-disk volume: descriptor + 2-line TOC + TEXT.DKI (no DKA)."""
+    (tmp_path / "DIGIBIB.TXT").write_bytes(b"[Default]\nCaption=Testvol\n")
+    (tmp_path / "TREE.DKI").write_bytes("Root\r\n Child".encode("cp1252"))
+    blob = bytearray()
+    blob += struct.pack("<I", len(records))
+    offs_pos = len(blob)
+    blob += b"\x00" * (4 * len(records))
+    offsets = []
+    pos = 4 + 4 * len(records)
+    for rec in records:
+        offsets.append(pos)
+        pos += len(rec)
+    struct.pack_into(f"<{len(records)}I", blob, offs_pos, *offsets)
+    for rec in records:
+        blob += rec
+    (tmp_path / "TEXT.DKI").write_bytes(bytes(blob))
+    return DigibibVolume(tmp_path)
+
+
+def test_search_hermetic(tmp_path):
+    vol = _make_volume(
+        tmp_path,
+        [
+            _word("Hallo") + _word("Welt"),
+            _word("Nathanael") + _word("spaziert"),
+            _word("Achim") + _word("H\xfcbner"),
+        ],
+    )
+    assert vol.record_count == 3
+    db = tmp_path / "t.db"
+    assert ensure_built(vol, "TESTVOL", db) is True
+    assert ensure_built(vol, "TESTVOL", db) is False  # cached
+    hits, rebuilt = search_records(vol, "TESTVOL", "Nathanael", db_path=db)
+    assert not rebuilt
+    assert [r for r, _s in hits] == [1]
+    assert "«Nathanael»" in hits[0][1]
+    # umlaut-insensitive through diacritic folding
+    hits, _ = search_records(vol, "TESTVOL", "Hubner", db_path=db)
+    assert [r for r, _s in hits] == [2]
+    assert search_records(vol, "TESTVOL", "zzz-no-match", db_path=db)[0] == []
+    assert search_records(vol, "TESTVOL", "   ", db_path=db)[0] == []
 
 
 def test_decode_single_word():
@@ -139,3 +191,24 @@ def test_live_db008_node_text_spans_chapter():
     assert "Nathanael" in text  # first record
     assert "Coppelius" in text  # records beyond the first: full chapter, not one page
     assert "Denner" in vol.record_text(2131)  # extent ends where next chapter starts
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db008_node_for_record():
+    vol = DigibibLibrary().open("DB008")
+    assert vol.node_for_record(2071).index == 87  # Werke 'Der Sandmann'
+    assert vol.node_for_record(0).index == 0  # volume root
+    assert vol.node_for_record(292).index == 43  # Hoertext 'Der Sandmann'
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db008_search():
+    vol = DigibibLibrary().open("DB008")
+    hits = vol.search("Nathanael", limit=50)
+    assert hits
+    recs = [h["record"] for h in hits]
+    assert any(2071 <= r < 2131 for r in recs)  # Sandmann chapter hit
+    assert any("«Nathanael»" in h["snippet"] for h in hits)
+    assert all(h["chapter"] for h in hits)  # every hit resolves to a chapter
+    dev = vol.search("Devrient")
+    assert any(h["record"] in (290, 291) for h in dev)
