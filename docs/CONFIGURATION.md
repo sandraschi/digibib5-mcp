@@ -35,9 +35,9 @@ carry no record mapping and `node_text` returns empty (see TROUBLESHOOTING).
 | `TREE.DKI` | TOC as CP1252 text, CRLF, leading spaces = depth | read |
 | `TREE.DKA` | u32 node -> record table (see below) | read |
 | `TEXT.DKI` | `[u32 count][u32 offset table][records]` | read |
-| `INDEX.*`, `LINKS.*` | search / cross-reference indexes | not wired up |
-| `IMAGES\1..4\*.BMP` | page images, 4 zoom levels | not wired up |
-| `SIGEL.DAT`, `VORTRAG.DAT`, `COVER*.BMP`, … | sigla, audio refs, cover art | not wired up |
+| `INDEX.*`, `LINKS.*` | search / cross-reference indexes | natively unread; search uses the FTS sidecar instead |
+| `IMAGES\1..4\*.BMP` | figure scans at 4 zoom levels | read (served as `image/bmp`) |
+| `SIGEL.DAT`, `VORTRAG.DAT`, `COVER*.BMP`, … | sigla, audio refs, cover art | audio not on discs (separate CDs); refs surface as text |
 
 ### `TREE.DKA` layout (solved 2026-10-26, verified DB003/004/005/007/008)
 
@@ -55,3 +55,15 @@ body][trailing marker copy][0x03]`. Source-path markers use `.txt`, rarely
 `.txi` / `.txx` - all matched as `.tx` + one alphanum. Record content is a
 tokenized word stream (`<u8 len><cp1252 bytes>` words plus control opcodes),
 see the codec map in DEVELOPMENT.md.
+
+### Figures (`IMAGES\`)
+
+Figure scans live in `IMAGES\1..4\*.BMP` - historically *next to* `data\` at
+the volume root (DB008), though the format doc places them inside `data\`;
+both locations are checked. Level 1 is thumbnail-size (DB008 `0092.BMP`:
+100x79x8bpp, ~9 KB), level 4 near-full (969x768, ~750 KB). Not every figure
+exists at every level (DB008: 53/53/53/48 - missing ones 404). File names
+match the `NNNN.bmp` figure refs embedded in the text (opcode `0x0B` +
+`[Abb. …]` captions); `node_image_refs()` collects them per chapter from the
+raw records. Audio (`VORTRAG.DAT`, `hoffwNN.wav` refs) lives on separate audio
+CDs, not the data discs.

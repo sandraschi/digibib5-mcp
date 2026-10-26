@@ -25,7 +25,9 @@ just lint / just fix  # ruff (+ biome for web_sota via bunx)
 
 `tests/test_dki.py` runs synthetic codec tests everywhere; live DB008 tests
 skip automatically when no discs are mounted (`DIGIBIB_ROOT` absent), so CI
-without the library still passes. Webapp: `bunx tsc --noEmit` in `web_sota/`.
+without the library still passes. Webapp typecheck:
+`node_modules/.bin/tsc --noEmit` in `web_sota/` (repo-pinned TS 5.7 -
+`bun x tsc` fetches TS 7 and misbehaves).
 
 ## Codec v2 opcode map (`codec.py`)
 
@@ -75,6 +77,14 @@ pairing open), `LINKS.PLX` values are record numbers but the offset-to-record
 alignment is unverified (record-3 slice does not point at the linked work),
 `WLX` = word lexicon (entry framing open), `HTX`/`SHX`/`SWX` roles open
 (`SWX` holds year/number terms, `INDEX.HTX`/`LINKS.HTX` are sparse/zeroed).
+
+## Figures
+
+`IMAGES/1..4/*.BMP` served as `image/bmp` (`parse_bmp_info` reads the
+BITMAPINFOHEADER; traversal-guarded names). `vol.images()` lists a level,
+`vol.image_bytes()` returns bytes, `node_image_refs()` regex-scans a
+chapter's raw records for `NNNN.bmp` refs. Reader shows a thumbnail strip
+(level 2, else first) linking to full size (highest level).
 
 ## Release
 
