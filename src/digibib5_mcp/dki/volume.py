@@ -3,9 +3,12 @@
 A volume is a ``data\\`` folder containing:
 - ``DIGIBIB.TXT``  - INI descriptor (identity shown in the CD picker).
 - ``TREE.DKI``     - TOC as indented CP1252 text (leading spaces = depth).
-- ``TREE.DKA``     - u32 table mapping each TOC line to a TEXT.DKI record index.
-- ``TEXT.DKI``     - ``[u32 count][u32 offset table][records]``; each record is
-                     length-prefixed, bracketed by its ``#q:\\...txt`` source path.
+- ``TREE.DKA``     - u32 table mapping each TOC line to a TEXT.DKI record index
+                     (shifted 1-based on older discs, direct on newer ones).
+- ``TEXT.DKI``     - records with a u32 offset table: variant A
+                     ``[u32 count][offsets]`` (DB008) or variant B
+                     ``[u32 magic][offsets...]`` (DB074); each record is
+                      length-prefixed, bracketed by its ``#q:\\...`` source path.
 
 See reversing-mcp/docs/DIGIBIB5_DKI_FORMAT.md for the full format write-up.
 The text decode is v1/approximate (see codec.py).
@@ -40,9 +43,9 @@ def parse_bmp_info(data: bytes) -> dict | None:
     return {"width": width, "height": abs(height), "bpp": bpp, "bytes": len(data)}
 
 
-# Source-path marker in TEXT.DKI records, e.g. ``#q:\digibib\8hoff\texte\hoff-200.txt``.
-# Extension is usually ``.txt`` but ``.txi`` / ``.txx`` occur (DB008 records).
-_MARKER = re.compile(rb"#q:[^ \r\n]{0,90}?\.tx[A-Za-z0-9]")
+# Source-path marker in TEXT.DKI records: ``#q:\...\hoff-200.txt`` (DB008)
+# or ``\x0e:q:\...\wbw-0000.xml`` (DB074, no hash, spaces in the path).
+_MARKER = re.compile(rb"(?:\x0e:|\x0e#|#)q:(?:[^\\:\x00-\x1f]*\\)+[^\\:\x00-\x1f:]*\.[A-Za-z0-9]{2,4}(?![A-Za-z0-9])")
 # A marker counts as the LEADING (header) marker only this close to the record start.
 _HEADER_ZONE = 128
 
@@ -103,13 +106,18 @@ class DigibibVolume:
 
     # ----------------------------------------------------------------- toc
     @staticmethod
-    def _find_table_start(dka: bytes, n: int, cnt: int | None) -> int | None:
+    def _find_table_start(dka: bytes, n: int, cnt: int | None) -> tuple[int, str] | None:
         """Locate the node->record table inside TREE.DKA.
 
-        Layout (verified DB008/005/007/003/004): a structural prefix of large
-        u32 values, then a monotonic non-decreasing run of exactly ``n`` u32s
-        (one per TOC line) ending with ``cnt + 1`` (terminator), then a short
-        tail of small values. Returns the run's start as a u32 index, or None.
+        Layouts seen (verified DB003/004/005/007/008, DB074):
+        - a structural prefix of large u32 values, then a monotonic
+          non-decreasing run of exactly ``n`` u32s (one per TOC line).
+        - SHIFTED (older discs): the run ends with ``cnt + 1`` (terminator);
+          entry *i* maps to nodes[*i + 1*] as ``record = entry - 1`` and the
+          root spans from record 0. First value is 2 (records 0-1 preamble).
+        - DIRECT (newer discs, e.g. DB074): no terminator; entry *i* maps to
+          nodes[*i*] as ``record = entry``. First value is 1.
+        Returns (start_u32_index, "shifted" | "direct"), or None.
         """
         if not dka or not cnt or n < 2:
             return None
@@ -117,15 +125,41 @@ class DigibibVolume:
         if total < n:
             return None
         vals = struct.unpack_from(f"<{total}I", dka, 0)
-        for cand in range(total - n + 1):
-            if vals[cand + n - 1] != cnt + 1:
-                continue
-            w = vals[cand : cand + n]
+
+        def is_run(s: int) -> bool:
+            w = vals[s : s + n]
             if w[0] > 20:
-                continue
-            if all(a <= b <= cnt + 1 for a, b in zip(w, w[1:])):
-                return cand
+                return False
+            if vals[s + n - 1] > cnt + 1:
+                return False
+            return all(a <= b <= cnt + 1 for a, b in zip(w, w[1:]))
+
+        for s in range(total - n + 1):
+            # SHIFTED first: exact legacy behavior (terminator run).
+            if vals[s + n - 1] == cnt + 1 and is_run(s):
+                return (s, "shifted")
+        for s in range(total - n + 1):
+            if is_run(s):
+                return (s, "direct")
         return None
+
+    @staticmethod
+    def _looks_textual(text: str) -> bool:
+        """Heuristic: decoded record holds prose, not binary preamble junk."""
+        if len(text) < 20:
+            return False
+        letters = sum(1 for c in text if c.isalpha())
+        return letters / len(text) > 0.4
+
+    def _first_readable(self, start: int, cnt: int) -> int:
+        """First record at/after ``start`` that decodes to prose (root span)."""
+        for r in range(start, min(start + 10, cnt)):
+            try:
+                if self._looks_textual(self.record_text(r)):
+                    return r
+            except Exception:
+                continue
+        return start
 
     def _load_toc(self) -> None:
         lines = self._path("TREE.DKI").read_bytes().decode(CP, "replace").split("\r\n")
@@ -135,12 +169,13 @@ class DigibibVolume:
                 continue
             depth = len(ln) - len(ln.lstrip(" "))
             nodes.append(TocNode(index=len(nodes), depth=depth, title=ln.strip(), record=None))
-        # TREE.DKA holds a 1-based start-record table for every node EXCEPT the
-        # volume root, plus a terminator: table entry i maps to nodes[i + 1] as
-        # ``record = entry - 1``. Verified on DB008: table index 86 holds 2072
-        # -> record 2071, the true 'Der Sandmann' start (node 87); table index
-        # 42 holds 293 -> record 292, the true Hoertext 'Der Sandmann' start
-        # (node 43). The root (nodes[0]) spans from record 0 (title page).
+        # TREE.DKA holds a start-record table, one entry per TOC line:
+        # SHIFTED (older discs, DB008): table entry i maps to nodes[i + 1] as
+        # ``record = entry - 1`` (1-based), root spans from record 0.
+        # DIRECT (newer discs, DB074): table entry i maps to nodes[i] as
+        # ``record = entry``; root spans from the first decodable record.
+        # Verified: DB008 node87 -> 2071, DB074 node117 -> rec477 'Der Sandmann'
+        # heading, node1 -> rec3 'Einführung' heading.
         try:
             cnt = self.record_count
         except Exception:
@@ -149,14 +184,21 @@ class DigibibVolume:
             dka = self._path("TREE.DKA").read_bytes()
         except Exception:
             dka = b""
-        s = self._find_table_start(dka, len(nodes), cnt)
-        if s is not None and cnt:
+        found = self._find_table_start(dka, len(nodes), cnt)
+        if found is not None and cnt:
             assert isinstance(cnt, int)
+            s, mode = found
             vals = struct.unpack_from(f"<{len(dka) // 4}I", dka, 0)
-            nodes[0].record = 0
-            for i in range(1, len(nodes)):
-                rec = vals[s + i - 1] - 1
-                nodes[i].record = rec if 0 <= rec < cnt else None
+            if mode == "shifted":
+                nodes[0].record = 0
+                for i in range(1, len(nodes)):
+                    rec = vals[s + i - 1] - 1
+                    nodes[i].record = rec if 0 <= rec < cnt else None
+            else:
+                for i in range(len(nodes)):
+                    rec = vals[s + i]
+                    nodes[i].record = rec if 0 <= rec < cnt else None
+                nodes[0].record = self._first_readable(nodes[0].record or 0, cnt)
         self._toc_flat = nodes
 
     @property
@@ -181,10 +223,42 @@ class DigibibVolume:
         return roots
 
     # -------------------------------------------------------------- records
+    @staticmethod
+    def _parse_offsets(data: bytes) -> list[int] | None:
+        """Offset table of TEXT.DKI: absolute, monotonic record starts.
+
+        Variant A (older discs, DB008): ``[u32 count][count offsets ...]``.
+        Variant B (newer discs, DB074): ``[u32 magic][offsets ...]`` with no
+        declared count - the table is the whole monotonic run.
+        """
+        if len(data) < 8:
+            return None
+        total = len(data) // 4
+        vals = struct.unpack(f"<{total}I", data[: total * 4])
+
+        def monotonic(ws: list[int]) -> bool:
+            return all(a <= b < len(data) for a, b in zip(ws, ws[1:]))
+
+        # Variant A: declared count that fits, table in-bounds + monotonic.
+        count = vals[0]
+        if 0 < count < total and 4 + 4 * count <= len(data):
+            cand = list(vals[1 : 1 + count])
+            if cand and cand[0] >= 4 + 4 * count and monotonic(cand):
+                return cand
+        # Variant B: longest monotonic run from u32 index 1 on.
+        run = [vals[1]]
+        for v in vals[2:]:
+            if v < run[-1] or v >= len(data):
+                break
+            run.append(v)
+        return run if len(run) >= 2 else None
+
     def _load_text(self) -> None:
         self._text = self._path("TEXT.DKI").read_bytes()
-        count = struct.unpack_from("<I", self._text, 0)[0]
-        self._offsets = list(struct.unpack_from(f"<{count}I", self._text, 4))
+        offs = self._parse_offsets(self._text)
+        if not offs:
+            raise ValueError(f"TEXT.DKI has no readable offset table ({self.data_dir})")
+        self._offsets = offs
         self._offsets.append(len(self._text))  # sentinel end
 
     @property
@@ -215,10 +289,13 @@ class DigibibVolume:
         if not matches:
             return rec
         if len(matches) == 1:
+            # One marker is a trailing one, unless the body after it is
+            # longer than the bytes before it (leading source-path header,
+            # e.g. DB008's .txi records; short DB074 records carry only
+            # a trailing marker).
             m = matches[0]
-            if m.start() < _HEADER_ZONE:
-                return rec[m.end() :]
-            return rec[: m.start()]
+            before, after = rec[: m.start()], rec[m.end() :]
+            return after if len(after) > len(before) else before
         first, last = matches[0], matches[-1]
         start = first.end() if first.start() < _HEADER_ZONE else 0
         return rec[start : last.start()]

@@ -5,9 +5,10 @@ reversing-mcp/docs/DIGIBIB5_DKI_FORMAT.md). A record's content is a stream of
 word tokens and control opcodes:
 
 - A WORD is ``<u8 length><length cp1252 bytes>`` optionally followed by inline
-  attached punctuation, then a 0x00/0x01/0x02 control byte. (``0x02`` doubles
-  as the length of 2-letter words such as "E." - the printable-chunk check
-  disambiguates it from a break.)
+  attached punctuation, then a 0x00/0x01/0x02 control byte. Newer discs set a
+  0x80 high bit on most length bytes (``0x83was``) — masked off before use.
+  (``0x02`` doubles as the length of 2-letter words such as "E." — the
+  printable-chunk check disambiguates it from a break.)
 - ``0x01`` carries spacing/formatting runs (usually doubled). Dropped; words
   are joined with single spaces.
 - ``0x02`` is a soft line break (print layout). A run of 2+ is a paragraph
@@ -81,14 +82,17 @@ def decode_tokens(buf: bytes) -> list[tuple]:
             while i < n and buf[i] == 0x02:
                 i += 1
             continue
-        if 1 <= b <= 63 and i + 1 + b <= n:
-            chunk = buf[i + 1 : i + 1 + b]
+        # Length with optional 0x80 high bit (newer discs set it on most words:
+        # 0x83was, 0x87Kindern, ...). Masked length, same printable check.
+        lb = (b & 0x3F) if 0x80 <= b <= 0xBF else b
+        if 1 <= lb <= 63 and i + 1 + lb <= n:
+            chunk = buf[i + 1 : i + 1 + lb]
             # Printable CP1252 only. Allowing 9..31 (as a first pass did) let
             # formatting opcodes 0x09/0x0b/0x0c/0x0e-0x12 masquerade as 1-char
             # words and leak into the text as control glyphs. A real word is
             # ASCII-printable or high-CP1252 (>=160).
             if chunk and all(32 <= c < 127 or c >= 160 for c in chunk):
-                j = i + 1 + b
+                j = i + 1 + lb
                 punct = bytearray()
                 while j < n and buf[j] in _INLINE_PUNCT:
                     punct.append(buf[j])

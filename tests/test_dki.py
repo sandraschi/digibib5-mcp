@@ -77,6 +77,36 @@ def _make_volume(tmp_path, records: list[bytes]):
     return DigibibVolume(tmp_path)
 
 
+def _make_volume_variant_b(tmp_path, records: list[bytes]):
+    """TEXT.DKI variant B (DB074): [u32 magic][offsets...], no declared count."""
+    (tmp_path / "DIGIBIB.TXT").write_bytes(b"[Default]\nCaption=Testvol\n")
+    (tmp_path / "TREE.DKI").write_bytes("Root\r\n Child".encode("cp1252"))
+    blob = bytearray()
+    blob += struct.pack("<I", 0x1924CC)
+    offs_pos = len(blob)
+    blob += b"\x00" * (4 * len(records))
+    offsets = []
+    pos = 4 + 4 * len(records)
+    for rec in records:
+        offsets.append(pos)
+        pos += len(rec)
+    struct.pack_into(f"<{len(records)}I", blob, offs_pos, *offsets)
+    for rec in records:
+        blob += rec
+    (tmp_path / "TEXT.DKI").write_bytes(bytes(blob))
+    return DigibibVolume(tmp_path)
+
+
+def test_text_dki_variant_b(tmp_path):
+    vol = _make_volume_variant_b(
+        tmp_path,
+        [_word("Hallo") + _word("du"), _word("Welt")],
+    )
+    assert vol.record_count == 2
+    assert vol.record_text(0) == "Hallo du"
+    assert vol.record_text(1) == "Welt"
+
+
 def test_search_hermetic(tmp_path):
     vol = _make_volume(
         tmp_path,
@@ -107,6 +137,14 @@ def test_decode_single_word():
     toks = decode_tokens(buf)
     assert ("word", "Werke") in toks
     assert decode_record_content(buf) == "Werke"
+
+
+def test_decode_masked_length():
+    # Newer discs set a 0x80 high bit on length bytes: 0x83 + 3 letters.
+    assert decode_record_content(b"\x83was\x00") == "was"
+    assert decode_record_content(b"\x87Kindern\x00") == "Kindern"
+    # Mixed masked + plain lengths in one stream.
+    assert decode_record_content(b"\x83was\x01\x04Welt\x00") == "was Welt"
 
 
 def test_decode_words_with_soft_break():
@@ -174,6 +212,16 @@ def test_content_region_txi_marker():
     region = DigibibVolume._content_region(rec)
     assert b"#q:" not in region
     assert decode_record_content(region) == "Die Elixiere"
+
+
+def test_content_region_xml_marker():
+    # DB074 records carry .xml markers.
+    body = b"\x05Werke\x00"
+    rec = b"\x13\x11volumehead\x0f\x01" + body + b"#q:\\digibib\\db74\\texte\\wbw-0.xml\x03"
+    region = DigibibVolume._content_region(rec)
+    assert b"#q:" not in region
+    assert b"xml" not in region
+    assert decode_record_content(region) == "Werke"
 
 
 def test_content_region_leading_and_trailing():
@@ -248,6 +296,31 @@ def test_live_db008_search():
     assert all(h["chapter"] for h in hits)  # every hit resolves to a chapter
     dev = vol.search("Devrient")
     assert any(h["record"] in (290, 291) for h in dev)
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db008_last_record():
+    # The final record must decode (sentinel end), and the last chapter which
+    # spans it must not crash node_text.
+    vol = DigibibLibrary().open("DB008")
+    last = vol.record_count - 1
+    assert isinstance(vol.record_text(last), str)
+    text = vol.node_text(len(vol.toc_flat) - 1)
+    assert isinstance(text, str)
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db074_toc_and_mapping():
+    # Newer-disc layout: lowercase files, variant-B TEXT.DKI, direct DKA table.
+    vol = DigibibLibrary().open("DB074")
+    assert len(vol.toc_flat) == 2508
+    assert vol.record_count == 5881
+    assert vol.toc_flat[1].record == 3  # 'Einführung' heading record
+    assert vol.toc_flat[117].record == 477  # 'Max und Moritz'
+    assert vol.toc_flat[0].record == 2  # root skips binary preamble
+    text = vol.node_text(117)
+    assert "Moritz" in text
+    assert "Streichen" in text
 
 
 @pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
