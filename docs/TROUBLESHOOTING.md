@@ -15,4 +15,5 @@
 | `biome ci` flags `useButtonType` / non-null assertions | Pre-existing webapp lint debt, unrelated to content changes | Leave alone or fix separately; `just lint` exits 0 by design |
 | First `search` on a volume is slow (~10 s) | FTS cache builds by decoding all records | Expected once per volume; cached in `data/search.db`, invalidated by `TEXT.DKI` mtime+size |
 | `search` FTS5 syntax error | Unbalanced quotes etc. in `?q=` | Server falls back to AND-of-terms; quote phrases explicitly: `?q="Der Sandmann"` |
+| Figure 404 in reader (full size) | Not every figure exists at the highest zoom (DB008 L4: 48/53) | Thumbnails use a lower level; missing full-size 404s are expected |
 | Mojibake/`�` in terminal output | Console font/encoding mangling high-CP1252 chars (ö, ü, «), not decoder output | Decoded text contains zero U+FFFD; check in the webapp or a UTF-8 file |
