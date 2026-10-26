@@ -16,7 +16,10 @@ Early. What works today:
 - **Volume discovery** - scans the install root and lists every CD-ROM image.
 - **Descriptor** - reads `DIGIBIB.TXT` identity (title etc.).
 - **TOC** - parses `TREE.DKI` (indented-text tree) into a nested table of contents.
-- **Text decode** - decodes `TEXT.DKI` records (tokenized word-stream codec).
+- **Text decode** - decodes `TEXT.DKI` records (tokenized word-stream codec, v2:
+  flowing paragraphs, heads dropped, de-hyphenated).
+- **Search** - FTS5 sidecar over decoded text with chapter snippets (`search` op,
+  REST `/api/.../search`, reader search box).
 - **REST API + reader webapp** - a Starlette backend serves the library as JSON,
   and a React/Vite/Tailwind reader renders the volume picker, TOC tree, and text.
 
@@ -57,11 +60,13 @@ digibib(operation="descriptor", volume_id="DB008")
 digibib(operation="toc", volume_id="DB008", max_depth=3)
 digibib(operation="node_text", volume_id="DB008", node_index=5)
 digibib(operation="record_text", volume_id="DB008", record_index=0)
+digibib(operation="search", volume_id="DB008", query="Nathanael", limit=10)
 ```
 
 `node_text` returns the node's full chapter extent (`record`..`record_end`,
 `records_total`, `truncated` when capped at 100 records); `record_text` reads
-one raw `TEXT.DKI` record.
+one raw `TEXT.DKI` record; `search` returns FTS5 hits with the containing
+chapter and a `«»`-marked snippet per hit.
 
 The install root defaults to `K:\Digitale Bibliothek\Bibliothek` (override with
 the `DIGIBIB_ROOT` env var or the `root` argument).

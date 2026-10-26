@@ -1,5 +1,15 @@
 # digibib5-mcp - latest changes
 
+## 0.2.0 (2026-10-26) - full-text search
+
+`digibib(operation="search")` + REST `/api/volume/{id}/search` + reader search
+box: SQLite FTS5 sidecar over decoded text (`data/search.db`, diacritic
+folding, `«»` snippets, chapter resolution per hit, AND-fallback on syntax
+errors). Searching decoded text (not the partly-mapped native `INDEX.*`)
+guarantees hits match the displayed text. Native index status documented in
+`docs/DEVELOPMENT.md` (TTX offset tables verified; lexicon/posting pairing
+still open). Version bumped to 0.2.0 everywhere.
+
 ## 0.1.2 (2026-10-26) - codec v2: flowing text
 
 Chapters rendered as ~64-char ragged print lines (every soft `0x02` break
