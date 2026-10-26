@@ -1,5 +1,13 @@
 # digibib5-mcp - latest changes
 
+## 0.4.0 (2026-10-26) - SOTA webapp + LLM backend
+
+AppLayout shell with routed pages (Dashboard / Reader / Tools / Chat / Settings / Logs / Help),
+Zustand + resident-first model selection, local/cloud LLM proxy (providers, models, test,
+keystore, chat + SSE stream, GPUs, install), live /api/tools introspection, /api/stats,
+/api/logs, onboarding cue + MOCK-until-onboarded dashboard, dashboard KPIs. Full `just ci`
+(PS51 gate, ruff, format, pyright, pytest) and CI workflow.
+
 ## 0.3.0 (2026-10-26) - figures
 
 `IMAGES/1..4/*.BMP` served as `image/bmp` (`images` op, `/api/.../images`,

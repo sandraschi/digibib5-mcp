@@ -40,6 +40,24 @@ figures at a zoom level (default: highest); binary bytes come from the
 | GET | `/api/volume/{vid}/search?q=&limit=` | FTS5 hits: `{query, count, results}` |
 | GET | `/api/volume/{vid}/images?level=` | figures: `{levels, level, count, images}` |
 | GET | `/api/volume/{vid}/image/{level}/{name}` | raw BMP bytes (`image/bmp`) |
+| GET | `/api/stats` | `{volumes, total_records, total_figures, index_bytes}` |
+| GET | `/api/logs?limit=` | ring-buffer log entries |
+| GET | `/api/tools` | live tool schemas derived from the `digibib` function |
+| GET | `/api/tools/{op}` | one operation's schema |
+| POST | `/api/tools/{op}/run` `{arguments}` | invoke an operation, `{result}` |
+| GET | `/api/llm/providers` | local/cloud registry + detection, never key bytes |
+| GET | `/api/llm/models?provider=` | live list or curated-with-`key_missing` |
+| POST | `/api/llm/test` `{provider, api_key?}` | validate without saving |
+| GET/POST | `/api/settings/llm` | backend truth: active pair; save selects + switches VRAM |
+| DELETE | `/api/settings/llm/key?provider=` | forget a stored key |
+| POST | `/api/llm/chat` | non-streaming completion, `{content}` |
+| POST | `/api/llm/chat/stream` | SSE OpenAI-style chunks |
+| GET | `/api/llm/gpus` | nvidia-smi VRAM per card |
+| GET | `/api/llm/loaded?provider=` | resident models (Ollama `/api/ps`) |
+| POST | `/api/llm/unload` | evict all residents on an engine |
+| GET | `/api/llm/onboarding` | locals, configured clouds, recommended path |
+| POST | `/api/llm/install` | allowlisted one-click engine install (Ollama) |
+| GET | `/api/llm/install/status` | background install state |
 
 All endpoints accept `?root=` to override the library root. The Vite reader
 (14114) proxies `/api` here.
@@ -49,23 +67,23 @@ All endpoints accept `?root=` to override the library root. The Vite reader
 ```python
 from digibib5_mcp.dki import DigibibLibrary
 
-lib = DigibibLibrary()                     # DigibibLibrary(root=...) override
-lib.list_volumes()                         # [VolumeRef(id, data_dir, title)]
+lib = DigibibLibrary()  # DigibibLibrary(root=...) override
+lib.list_volumes()  # [VolumeRef(id, data_dir, title)]
 vol = lib.open("DB008")
-vol.title                                  # from DIGIBIB.TXT Caption
-vol.descriptor                             # dict of INI keys
-vol.toc_flat                               # [TocNode(index, depth, title, record, children)]
-vol.toc_tree()                             # nested forest
+vol.title  # from DIGIBIB.TXT Caption
+vol.descriptor  # dict of INI keys
+vol.toc_flat  # [TocNode(index, depth, title, record, children)]
+vol.toc_tree()  # nested forest
 vol.record_count
-vol.record_text(i)                         # decoded single record
-vol.node_extent(i)                         # (start, end) half-open record range
-vol.node_text(i, max_records=100)          # decoded chapter
-vol.node_for_record(r)                     # deepest TocNode containing record r
-vol.search("Nathanael", limit=20)          # [{record, node_index, chapter, snippet}]
-vol.image_levels()                         # e.g. [1, 2, 3, 4]
-vol.images(level=None)                     # [{name, width, height, bpp, bytes}]
-vol.image_bytes(level, name)               # raw BMP bytes
-vol.node_image_refs(i)                     # figure names referenced by chapter i
+vol.record_text(i)  # decoded single record
+vol.node_extent(i)  # (start, end) half-open record range
+vol.node_text(i, max_records=100)  # decoded chapter
+vol.node_for_record(r)  # deepest TocNode containing record r
+vol.search("Nathanael", limit=20)  # [{record, node_index, chapter, snippet}]
+vol.image_levels()  # e.g. [1, 2, 3, 4]
+vol.images(level=None)  # [{name, width, height, bpp, bytes}]
+vol.image_bytes(level, name)  # raw BMP bytes
+vol.node_image_refs(i)  # figure names referenced by chapter i
 ```
 
 `TocNode.record` is the chapter's start record from `TREE.DKA` (`None` when

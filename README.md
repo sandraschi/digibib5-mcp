@@ -96,10 +96,10 @@ for ref in lib.list_volumes():
     print(ref.id, ref.title)
 
 vol = lib.open("DB008")
-print(vol.title)                 # Digitale Bibliothek Band 8: Hoffmann
+print(vol.title)  # Digitale Bibliothek Band 8: Hoffmann
 for root in vol.toc_tree():
-    print(root.title)            # Hoffmann -> ...
-print(vol.record_text(0))        # decoded record text
+    print(root.title)  # Hoffmann -> ...
+print(vol.record_text(0))  # decoded record text
 ```
 
 ## Run
@@ -116,12 +116,11 @@ proxies `/api` to the backend.
 
 ## Reader webapp
 
-`web_sota/` - React 18 + Vite 6 + Tailwind 4 (Bun). Three panes: a CD-ROM volume
-picker, a collapsible TOC tree, and a content pane rendering flowing chapter
-text (book-like measure, justified serif). A "jump to #" record browser reads
-`TEXT.DKI` records directly - handy for volumes without a `TREE.DKA` mapping
-(e.g. DB012) and for inspecting raw records. Ports: 14114 (frontend) / 14115
-(backend REST).
+`web_sota/` - React 18 + Vite 6 + Tailwind 4 + react-router + Zustand (Bun). AppLayout shell
+(sidebar, topbar, health dot) with routed pages: Dashboard (library KPIs + onboarding),
+Reader (volume picker, TOC tree, content pane, search, figures), Tools (live op harness),
+Chat (local/cloud LLM, resident-first), Settings (backend + AI), Logs, Help. Ports:
+14114 (frontend) / 14115 (backend REST).
 
 ## Packaging
 
