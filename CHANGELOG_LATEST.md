@@ -1,5 +1,15 @@
 # digibib5-mcp - latest changes
 
+## 0.4.1 (2026-10-26) - newer-disc format variant (DB074)
+
+DB074 (Busch, 2508 TOC nodes) crashed the TOC endpoint: its TEXT.DKI has no
+declared count (`[magic][offsets...]` instead of `[count][offsets...]`) and
+its TREE.DKA maps directly instead of shifted. The parser now handles both
+variants (strict-A then monotonic-run-B; terminator-run means shifted, else
+direct with root at the first decodable record). Also: 0x80-bit word lengths
+and `.xml` / `0x0e:q:` source markers decoded — DB074 chapters (Max und
+Moritz) read cleanly. Live regression tests for DB074 + DB008 last record.
+
 ## 0.4.0 (2026-10-26) - SOTA webapp + LLM backend
 
 AppLayout shell with routed pages (Dashboard / Reader / Tools / Chat / Settings / Logs / Help),

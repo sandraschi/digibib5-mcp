@@ -8,6 +8,9 @@ reader webapp.
 
 The `.DKI` format was reversed from the real discs (see
 [reversing-mcp `docs/DIGIBIB5_DKI_FORMAT.md`](https://github.com/sandraschi/reversing-mcp/blob/master/docs/DIGIBIB5_DKI_FORMAT.md)).
+Two format generations are supported: older single-table volumes (DB008) and
+newer ones (DB074, DB006) with magic-prefixed TEXT.DKI, direct TREE.DKA
+mapping, high-bit word lengths and `.xml` source markers.
 Digibib5 itself is the oracle: run it alongside to compare rendered output.
 
 ## Documentation

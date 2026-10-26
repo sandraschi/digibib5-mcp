@@ -36,7 +36,7 @@ Pipeline: `_content_region` (strip `#q:` markers) -> `decode_tokens` ->
 
 | Byte(s) | Meaning | Render |
 |---------|---------|--------|
-| `<len><bytes>` printable | word, optional trailing inline punct | word, single-space joined |
+| `<len><bytes>` printable | word, optional trailing inline punct (`0x80` high bit on length masked off on newer discs) | word, single-space joined |
 | `0x00` | word terminator / stray | dropped |
 | `0x01` (+ runs) | spacing/formatting | dropped |
 | `0x02` single | soft print-layout break | space (reflow) |
@@ -58,6 +58,16 @@ Pipeline: `_content_region` (strip `#q:` markers) -> `decode_tokens` ->
 check disambiguates. Open (evidence-thin, left dropped): `0x0E` block markers,
 `0x0C` block ends, heading levels, italics, lone `0x84/0x94/0xAB/0xBB` bytes
 (`0x94` verified as a `0x0F` operand).
+
+TEXT.DKI comes in two variants (both verified live): **A** `[u32 count][count
+offsets ...]` (DB008: records start at 422400, after index data) and **B**
+`[u32 magic][offset run ...]` with no declared count (DB074: magic `0x1924CC`,
+5881 offsets, first record at 720004). The parser tries A (strict: fits,
+monotonic, in-bounds) then falls back to B (longest monotonic run from u32
+index 1). TREE.DKA likewise has two conventions: **shifted** (run ends with
+`count + 1` terminator; entry *i* -> nodes[*i + 1*], `record = entry - 1`,
+root at 0) and **direct** (no terminator; entry *i* -> nodes[*i*] as-is,
+root at the first decodable record). DB008 = A+shifted, DB074 = B+direct.
 
 ## Search
 

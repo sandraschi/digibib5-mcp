@@ -34,7 +34,7 @@ carry no record mapping and `node_text` returns empty (see TROUBLESHOOTING).
 | `DIGIBIB.TXT` | INI descriptor (`Caption`, `ShortTitle`, …) | read |
 | `TREE.DKI` | TOC as CP1252 text, CRLF, leading spaces = depth | read |
 | `TREE.DKA` | u32 node -> record table (see below) | read |
-| `TEXT.DKI` | `[u32 count][u32 offset table][records]` | read |
+| `TEXT.DKI` | `[u32 count][u32 offset table][records]` (variant A) or `[u32 magic][offsets...]` (variant B, e.g. DB074) | read |
 | `INDEX.*`, `LINKS.*` | search / cross-reference indexes | natively unread; search uses the FTS sidecar instead |
 | `IMAGES\1..4\*.BMP` | figure scans at 4 zoom levels | read (served as `image/bmp`) |
 | `SIGEL.DAT`, `VORTRAG.DAT`, `COVER*.BMP`, … | sigla, audio refs, cover art | audio not on discs (separate CDs); refs surface as text |
