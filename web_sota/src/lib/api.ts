@@ -1,4 +1,5 @@
 // Typed client for the digibib5 REST backend (proxied at /api by Vite).
+import type { ToolMeta } from "./tool-schema";
 
 export interface VolumeRef {
 	id: string;
@@ -72,8 +73,8 @@ export interface SearchResponse {
 	results: SearchHit[];
 }
 
-async function getJSON<T>(url: string): Promise<T> {
-	const r = await fetch(url);
+async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
+	const r = await fetch(url, init);
 	const data = (await r.json()) as T;
 	if (!r.ok) {
 		const err = (data as { error?: string }).error ?? `HTTP ${r.status}`;
@@ -114,4 +115,21 @@ export const api = {
 		),
 	imageUrl: (vid: string, level: number, name: string) =>
 		`/api/volume/${encodeURIComponent(vid)}/image/${level}/${encodeURIComponent(name)}`,
+	tools: () =>
+		getJSON<{ success: boolean; count: number; tools: ToolMeta[] }>(
+			"/api/tools",
+		),
+	toolDetail: (name: string) =>
+		getJSON<{ success: boolean; tool: ToolMeta }>(
+			`/api/tools/${encodeURIComponent(name)}`,
+		),
+	runTool: (name: string, args: Record<string, unknown>) =>
+		getJSON<{ success: boolean; result: unknown }>(
+			`/api/tools/${encodeURIComponent(name)}/run`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ arguments: args }),
+			},
+		),
 };
