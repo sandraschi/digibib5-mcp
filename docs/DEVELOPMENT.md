@@ -54,8 +54,27 @@ Pipeline: `_content_region` (strip `#q:` markers) -> `decode_tokens` ->
 
 `0x02` doubles as the length of 2-letter words (`E.`); the printable-chunk
 check disambiguates. Open (evidence-thin, left dropped): `0x0E` block markers,
-`0x0C` block ends, heading levels, italics, lone `0x84/0x94/0xAB/0xBB`
+`0x0C` block ends, heading levels, italics, lone `0x84/0x94/0xAB/0xBB` bytes
 (`0x94` verified as a `0x0F` operand).
+
+## Search
+
+`dki/search.py` builds a per-volume SQLite FTS5 sidecar at `data/search.db`
+(`DIGIBIB_CACHE_DIR` overrides; invalidated by `TEXT.DKI` mtime+size).
+Unicode61 tokenizer with diacritic folding, so `Hubner` finds `Hübner`;
+raw FTS5 syntax, with an AND-of-terms fallback on syntax errors. Snippets via
+`snippet()` with `«»` match markers. `node_for_record()` maps each hit to its
+deepest chapter (extents precomputed once per volume, right-to-left stack
+pass).
+
+Deliberately not the native `INDEX.*`: searching decoded text guarantees hits
+match exactly what the reader displays. Native format status (DB008):
+`INDEX.TTX`/`LINKS.TTX` = `[count][per-record u32 offsets][data]` verified
+(LINKS offs[-1] = PLX length; INDEX offs point into the TTX tail, not PLX -
+pairing open), `LINKS.PLX` values are record numbers but the offset-to-record
+alignment is unverified (record-3 slice does not point at the linked work),
+`WLX` = word lexicon (entry framing open), `HTX`/`SHX`/`SWX` roles open
+(`SWX` holds year/number terms, `INDEX.HTX`/`LINKS.HTX` are sparse/zeroed).
 
 ## Release
 

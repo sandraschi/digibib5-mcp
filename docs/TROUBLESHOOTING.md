@@ -13,4 +13,6 @@
 | Port 14114/14115 already in use | Stale backend/Vite process | `stop.bat` at repo root, or kill the owning process and retry |
 | `ruff`/`pytest` not found | Dev/test extras not synced | `uv sync --extra dev --extra test` (note: `--group dev` is not defined; extras are `dev` and `test`) |
 | `biome ci` flags `useButtonType` / non-null assertions | Pre-existing webapp lint debt, unrelated to content changes | Leave alone or fix separately; `just lint` exits 0 by design |
+| First `search` on a volume is slow (~10 s) | FTS cache builds by decoding all records | Expected once per volume; cached in `data/search.db`, invalidated by `TEXT.DKI` mtime+size |
+| `search` FTS5 syntax error | Unbalanced quotes etc. in `?q=` | Server falls back to AND-of-terms; quote phrases explicitly: `?q="Der Sandmann"` |
 | Mojibake/`�` in terminal output | Console font/encoding mangling high-CP1252 chars (ö, ü, «), not decoder output | Decoded text contains zero U+FFFD; check in the webapp or a UTF-8 file |

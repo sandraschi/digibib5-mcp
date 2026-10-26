@@ -15,10 +15,14 @@ override `DIGIBIB_ROOT`.
 | `toc` | `volume_id`, `max_depth?` | nested `{index, title, depth, record, children?}` forest + `node_count`, `record_count` |
 | `node_text` | `volume_id`, `node_index` | full chapter extent: `{title, record, record_end, records_total, truncated, text}` |
 | `record_text` | `volume_id`, `record_index` | single raw record: `{text}` |
+| `search` | `volume_id`, `query`, `limit?` | FTS5 hits: `[{record, node_index, chapter, snippet}]` |
 
 `node_text` concatenates every record from the node's start record up to the
 next non-descendant node (capped at 100 records / 300k chars, `truncated: true`
-when capped). Extent metadata uses half-open `[record, record_end)`.
+when capped). Extent metadata uses half-open `[record, record_end)`. `search`
+queries decoded text with FTS5 syntax (words, `AND`/`OR`/`NOT`, `"phrase"`,
+`prefix*`); snippets mark matches with `«»`. First search per volume builds
+the cache (~10 s for DB008), later searches are instant.
 
 ## REST (`http://127.0.0.1:14115`)
 
@@ -30,6 +34,7 @@ when capped). Extent metadata uses half-open `[record, record_end)`.
 | GET | `/api/volume/{vid}/toc?max_depth=` | |
 | GET | `/api/volume/{vid}/node/{idx}/text` | chapter extent + metadata |
 | GET | `/api/volume/{vid)/record/{idx}/text` | single record |
+| GET | `/api/volume/{vid}/search?q=&limit=` | FTS5 hits: `{query, count, results}` |
 
 All endpoints accept `?root=` to override the library root. The Vite reader
 (14114) proxies `/api` here.
@@ -50,6 +55,8 @@ vol.record_count
 vol.record_text(i)                         # decoded single record
 vol.node_extent(i)                         # (start, end) half-open record range
 vol.node_text(i, max_records=100)          # decoded chapter
+vol.node_for_record(r)                     # deepest TocNode containing record r
+vol.search("Nathanael", limit=20)          # [{record, node_index, chapter, snippet}]
 ```
 
 `TocNode.record` is the chapter's start record from `TREE.DKA` (`None` when
