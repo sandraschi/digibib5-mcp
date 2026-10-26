@@ -37,6 +37,21 @@ export interface TextResponse {
   error?: string;
 }
 
+export interface SearchHit {
+  record: number;
+  node_index: number | null;
+  chapter: string | null;
+  snippet: string;
+}
+
+export interface SearchResponse {
+  success: boolean;
+  volume_id: string;
+  query: string;
+  count: number;
+  results: SearchHit[];
+}
+
 async function getJSON<T>(url: string): Promise<T> {
   const r = await fetch(url);
   const data = (await r.json()) as T;
@@ -59,4 +74,8 @@ export const api = {
     getJSON<TextResponse>(`/api/volume/${encodeURIComponent(vid)}/node/${idx}/text`),
   recordText: (vid: string, idx: number) =>
     getJSON<TextResponse>(`/api/volume/${encodeURIComponent(vid)}/record/${idx}/text`),
+  search: (vid: string, q: string, limit = 20) =>
+    getJSON<SearchResponse>(
+      `/api/volume/${encodeURIComponent(vid)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
 };

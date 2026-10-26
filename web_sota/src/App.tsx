@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type TextResponse, type TocNode, type VolumeRef } from "./lib/api";
+import { api, type SearchHit, type TextResponse, type TocNode, type VolumeRef } from "./lib/api";
 
 // ------------------------------------------------------------------ TOC tree
 
@@ -55,6 +55,8 @@ export default function App() {
   const [activeNode, setActiveNode] = useState<number | null>(null);
   const [content, setContent] = useState<TextResponse | null>(null);
   const [recInput, setRecInput] = useState("0");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchHit[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +73,8 @@ export default function App() {
     setContent(null);
     setActiveNode(null);
     setError(null);
+    setResults(null);
+    setQuery("");
     if (!id) return;
     setLoading(true);
     try {
@@ -119,6 +123,49 @@ export default function App() {
     [vid, recordCount],
   );
 
+  const runSearch = useCallback(
+    async (q: string) => {
+      if (!vid || !q.trim()) {
+        setResults(null);
+        return;
+      }
+      setError(null);
+      setLoading(true);
+      try {
+        const r = await api.search(vid, q.trim());
+        setResults(r.results);
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [vid],
+  );
+
+  const showHit = useCallback(
+    async (h: SearchHit) => {
+      if (!vid) return;
+      setError(null);
+      setLoading(true);
+      try {
+        if (h.node_index != null) {
+          setActiveNode(h.node_index);
+          setRecInput(String(h.record));
+          setContent(await api.nodeText(vid, h.node_index));
+        } else {
+          await showRecord(h.record);
+          return;
+        }
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [vid, showRecord],
+  );
+
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-white/10 bg-[#0e1420] px-4 py-2.5">
@@ -146,27 +193,84 @@ export default function App() {
               {tocTitle || "Table of contents"}
             </div>
             {recordCount > 0 && (
-              <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                <span>{recordCount} records</span>
-                <span className="mx-1">-</span>
-                <span>jump to #</span>
-                <input
-                  className="w-16 rounded border border-white/10 bg-[#121a28] px-1 py-0.5 text-gray-200"
-                  value={recInput}
-                  onChange={(e) => setRecInput(e.target.value.replace(/[^0-9]/g, ""))}
-                  onKeyDown={(e) => e.key === "Enter" && showRecord(Number(recInput))}
-                />
-                <button
-                  className="rounded bg-sky-700/50 px-1.5 py-0.5 text-sky-200 hover:bg-sky-700"
-                  onClick={() => showRecord(Number(recInput))}
-                >
-                  go
-                </button>
-              </div>
+              <>
+                <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                  <span>{recordCount} records</span>
+                  <span className="mx-1">-</span>
+                  <span>jump to #</span>
+                  <input
+                    className="w-16 rounded border border-white/10 bg-[#121a28] px-1 py-0.5 text-gray-200"
+                    value={recInput}
+                    onChange={(e) => setRecInput(e.target.value.replace(/[^0-9]/g, ""))}
+                    onKeyDown={(e) => e.key === "Enter" && showRecord(Number(recInput))}
+                  />
+                  <button
+                    className="rounded bg-sky-700/50 px-1.5 py-0.5 text-sky-200 hover:bg-sky-700"
+                    onClick={() => showRecord(Number(recInput))}
+                  >
+                    go
+                  </button>
+                </div>
+                <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                  <span>search</span>
+                  <input
+                    className="min-w-0 flex-1 rounded border border-white/10 bg-[#121a28] px-1 py-0.5 text-gray-200"
+                    placeholder="word, phrase, prefix* …"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void runSearch(query);
+                      if (e.key === "Escape") {
+                        setQuery("");
+                        setResults(null);
+                      }
+                    }}
+                  />
+                  <button
+                    className="rounded bg-sky-700/50 px-1.5 py-0.5 text-sky-200 hover:bg-sky-700"
+                    onClick={() => void runSearch(query)}
+                  >
+                    go
+                  </button>
+                  {results != null && (
+                    <button
+                      className="rounded px-1.5 py-0.5 text-gray-400 hover:text-gray-200"
+                      title="Clear search"
+                      onClick={() => {
+                        setQuery("");
+                        setResults(null);
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </>
             )}
           </div>
           <div className="min-h-0 flex-1 overflow-auto p-2">
-            {toc.length === 0 ? (
+            {results != null ? (
+              results.length === 0 ? (
+                <p className="px-2 py-4 text-sm text-gray-500">No hits. Try fewer words or a prefix*.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {results.map((h) => (
+                    <li key={h.record}>
+                      <button
+                        className="w-full rounded px-2 py-1.5 text-left hover:bg-white/5"
+                        onClick={() => void showHit(h)}
+                      >
+                        <div className="truncate text-sm text-sky-200">
+                          {h.chapter ?? `Record #${h.record}`}
+                        </div>
+                        <div className="text-xs text-gray-500">record #{h.record}</div>
+                        <div className="mt-0.5 line-clamp-3 text-xs text-gray-400">{h.snippet}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : toc.length === 0 ? (
               <p className="px-2 py-4 text-sm text-gray-500">
                 {vid ? "No table of contents." : "Select a volume to load its tree."}
               </p>
@@ -191,7 +295,7 @@ export default function App() {
             {loading && <div className="text-sm text-gray-500">Loading...</div>}
             {!loading && !content && !error && (
               <div className="mt-20 text-center text-gray-500">
-                <p className="text-lg">Pick an entry from the tree, or jump to a record.</p>
+                <p className="text-lg">Pick an entry from the tree, search, or jump to a record.</p>
                 <p className="mt-2 text-sm">
                   Reverse-engineered reader for Directmedia's Digitale Bibliothek 5 discs.
                 </p>
@@ -229,8 +333,8 @@ export default function App() {
                   </div>
                 )}
                 <p className="mt-6 border-t border-white/5 pt-3 text-xs text-gray-600">
-                  Text decode is v1/approximate - readable but not yet byte-faithful. A chapter shows
-                  all its records; the volume root is capped at 100.
+                  Text decode is v2 (flowing paragraphs, heads dropped) - readable but not yet
+                  byte-faithful. A chapter shows all its records; the volume root is capped at 100.
                 </p>
               </article>
             )}
