@@ -28,7 +28,7 @@ packages = ["src/digibib5_mcp"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = [
-    "ignore:Using `httpx` with `starlette.testclient`.*:DeprecationWarning",
+    "ignore:Using `httpx` with `starlette.testclient`.*:UserWarning",
 ]
 
 [tool.ruff]
