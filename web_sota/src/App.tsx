@@ -166,9 +166,12 @@ export default function App() {
     [vid, showRecord],
   );
 
+  const figLevels = content?.image_levels ?? [];
+  const figThumb = figLevels.includes(2) ? 2 : figLevels[0];
+  const figFull = figLevels[figLevels.length - 1];
+
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-white/10 bg-[#0e1420] px-4 py-2.5">
+    <div className="flex h-full flex-col">      <header className="flex items-center gap-3 border-b border-white/10 bg-[#0e1420] px-4 py-2.5">
         <span className="text-lg font-semibold tracking-tight text-sky-300">Digibib5 Reader</span>
         <select
           className="ml-2 max-w-[48ch] rounded border border-white/10 bg-[#121a28] px-2 py-1 text-sm text-gray-200"
@@ -317,11 +320,38 @@ export default function App() {
                       {content.truncated && <> - truncated, chapter continues</>}
                     </span>
                   )}
-                  {content.record != null && content.record_end == null && (
-                    <span>record #{content.record}</span>
-                  )}
-                  {content.record_index != null && <span>record #{content.record_index}</span>}
-                </div>
+                    {content.record != null && content.record_end == null && (
+                      <span>record #{content.record}</span>
+                    )}
+                    {content.record_index != null && <span>record #{content.record_index}</span>}
+                  </div>
+                  {content.images != null &&
+                    content.images.length > 0 &&
+                    figLevels.length > 0 && (
+                      <div className="mb-4">
+                        <div className="mb-1 text-xs uppercase tracking-wide text-gray-500">
+                          Figures ({content.images.length})
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {content.images.map((name) => (
+                            <a
+                              key={name}
+                              href={api.imageUrl(vid, figFull, name)}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={`${name} - open full size`}
+                            >
+                              <img
+                                src={api.imageUrl(vid, figThumb, name)}
+                                alt={name}
+                                loading="lazy"
+                                className="h-20 rounded border border-white/10 bg-white object-cover hover:border-sky-500/50"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {content.text?.trim() ? (
                       <div className="record-prose text-gray-200" lang="de">
                         {content.text}

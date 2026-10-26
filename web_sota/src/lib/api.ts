@@ -33,8 +33,28 @@ export interface TextResponse {
   record_end?: number | null;
   records_total?: number;
   truncated?: boolean;
+  images?: string[] | null;
+  image_levels?: number[] | null;
   text: string;
   error?: string;
+}
+
+export interface Figure {
+  name: string;
+  width: number | null;
+  height: number | null;
+  bpp: number | null;
+  bytes: number;
+  url: string;
+}
+
+export interface ImagesResponse {
+  success: boolean;
+  volume_id: string;
+  levels: number[];
+  level: number | null;
+  count: number;
+  images: Figure[];
 }
 
 export interface SearchHit {
@@ -78,4 +98,10 @@ export const api = {
     getJSON<SearchResponse>(
       `/api/volume/${encodeURIComponent(vid)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
     ),
+  images: (vid: string, level?: number) =>
+    getJSON<ImagesResponse>(
+      `/api/volume/${encodeURIComponent(vid)}/images${level != null ? `?level=${level}` : ""}`,
+    ),
+  imageUrl: (vid: string, level: number, name: string) =>
+    `/api/volume/${encodeURIComponent(vid)}/image/${level}/${encodeURIComponent(name)}`,
 };
