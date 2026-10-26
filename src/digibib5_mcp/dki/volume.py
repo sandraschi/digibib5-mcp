@@ -209,6 +209,40 @@ class DigibibVolume:
         """Decoded text of record i (v1 codec - see codec.py caveats)."""
         return decode_record_content(self._content_region(self.raw_record(i)))
 
+    def _compute_extents(self) -> list[tuple[int | None, int | None]]:
+        """All chapter extents in one right-to-left pass (amortized O(n)).
+
+        end[i] = first later record starting at a node that is not a
+        descendant of i (same or shallower depth, strictly later start),
+        else ``record_count``. Unmapped nodes get ``(None, None)``.
+        """
+        nodes = self.toc_flat
+        n = len(nodes)
+        count = self.record_count
+        extents: list[tuple[int | None, int | None]] = [(None, None)] * n
+        stack: list[tuple[int, int]] = []  # (depth, record), nearest last
+        for i in range(n - 1, -1, -1):
+            rec = nodes[i].record
+            if rec is None:
+                continue
+            d = nodes[i].depth
+            while stack and stack[-1][0] > d:
+                stack.pop()
+            end = count
+            for sd, sr in reversed(stack):
+                if sd <= d and sr > rec:
+                    end = sr
+                    break
+            extents[i] = (rec, end)
+            stack.append((d, rec))
+        return extents
+
+    @property
+    def _extents(self) -> list[tuple[int | None, int | None]]:
+        if self.__dict__.get("_extents_cache") is None:
+            self.__dict__["_extents_cache"] = self._compute_extents()
+        return self.__dict__["_extents_cache"]
+
     def node_extent(self, node_index: int) -> tuple[int | None, int | None]:
         """Record range a TOC node spans: ``(start, end)``, end exclusive.
 
@@ -218,17 +252,7 @@ class DigibibVolume:
         (a parent sharing its first child's start) are skipped so a parent
         spans the whole subtree. Returns ``(None, None)`` when unmapped.
         """
-        nodes = self.toc_flat
-        node = nodes[node_index]
-        if node.record is None:
-            return (None, None)
-        start = node.record
-        end = self.record_count
-        for nxt in nodes[node_index + 1 :]:
-            if nxt.depth <= node.depth and nxt.record is not None and nxt.record > start:
-                end = nxt.record
-                break
-        return (start, end)
+        return self._extents[node_index]
 
     def node_text(self, node_index: int, max_records: int = MAX_NODE_RECORDS) -> str:
         """Decoded text for a TOC node: all records in its extent, concatenated.
@@ -257,3 +281,36 @@ class DigibibVolume:
             if total >= MAX_NODE_CHARS:
                 break
         return postprocess_text("\n".join(parts))
+
+    def node_for_record(self, record: int) -> TocNode | None:
+        """Deepest TOC node whose chapter extent contains ``record``."""
+        best: TocNode | None = None
+        for node, (start, end) in zip(self.toc_flat, self._extents):
+            if start is not None and end is not None and start <= record < end:
+                if best is None or node.depth > best.depth:
+                    best = node
+        return best
+
+    def search(self, query: str, limit: int = 20) -> list[dict]:
+        """Full-text search over decoded chapter text (FTS5 sidecar, see
+        ``dki/search.py``). Each hit carries its chapter for context::
+
+            {"record": int, "node_index": int | None, "chapter": str | None,
+             "snippet": str}
+        """
+        from .search import search_records
+
+        volume_id = Path(self.data_dir).parent.name
+        hits, _rebuilt = search_records(self, volume_id, query, limit)
+        out = []
+        for rec, snippet in hits:
+            node = self.node_for_record(rec)
+            out.append(
+                {
+                    "record": rec,
+                    "node_index": node.index if node else None,
+                    "chapter": node.title if node else None,
+                    "snippet": snippet,
+                }
+            )
+        return out

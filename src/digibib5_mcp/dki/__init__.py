@@ -15,6 +15,7 @@ codec is v1/approximate (codec.py). Public API:
 
 from .codec import decode_record_content, decode_tokens, postprocess_text, render_text
 from .library import DigibibLibrary, VolumeRef
+from .search import ensure_built, search_records
 from .volume import MAX_NODE_CHARS, MAX_NODE_RECORDS, DigibibVolume, TocNode
 
 __all__ = [
@@ -28,4 +29,6 @@ __all__ = [
     "render_text",
     "postprocess_text",
     "decode_record_content",
+    "ensure_built",
+    "search_records",
 ]
