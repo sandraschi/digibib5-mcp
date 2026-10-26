@@ -46,6 +46,7 @@ export interface Figure {
 	height: number | null;
 	bpp: number | null;
 	bytes: number;
+	level?: number;
 	url: string;
 }
 

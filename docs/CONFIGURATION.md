@@ -56,14 +56,18 @@ body][trailing marker copy][0x03]`. Source-path markers use `.txt`, rarely
 tokenized word stream (`<u8 len><cp1252 bytes>` words plus control opcodes),
 see the codec map in DEVELOPMENT.md.
 
-### Figures (`IMAGES\`)
+### Figures
 
-Figure scans live in `IMAGES\1..4\*.BMP` - historically *next to* `data\` at
-the volume root (DB008), though the format doc places them inside `data\`;
-both locations are checked. Level 1 is thumbnail-size (DB008 `0092.BMP`:
-100x79x8bpp, ~9 KB), level 4 near-full (969x768, ~750 KB). Not every figure
-exists at every level (DB008: 53/53/53/48 - missing ones 404). File names
-match the `NNNN.bmp` figure refs embedded in the text (opcode `0x0B` +
-`[Abb. …]` captions); `node_image_refs()` collects them per chapter from the
-raw records. Audio (`VORTRAG.DAT`, `hoffwNN.wav` refs) lives on separate audio
+DB008-style volumes keep `IMAGES/1..4/*.BMP` (level = zoom folder) next to or
+inside `data/`. DB074-style volumes pack everything into a single
+`IMAGES/images.lib`: `[u32 magic=0x1924CC][95-byte entries ...][blobs]`.
+Each index entry is `[u8 len][name][0x00][85B body]`; zoom levels L1/L2/L3
+are `(w:u16, h:u16, off:u32, size:u32)` at body offsets 20 / 33(+1 tag) /
+46(+1 tag). Level 3 is optional (missing entries fall back to the nearest
+smaller zoom when served). The index is walked by stride until the first
+invalid entry (DB074: 3564 entries, image data starts right after).
+
+Not every figure exists at every level (DB008 L4: 48/53; several DB074
+entries lack L3). Missing levels 404 (or serve the fallback zoom for
+`image_bytes`). Audio (`VORTRAG.DAT`, `hoffwNN.wav`) lives on separate audio
 CDs, not the data discs.

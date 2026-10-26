@@ -16,7 +16,7 @@ override `DIGIBIB_ROOT`.
 | `node_text` | `volume_id`, `node_index` | full chapter extent: `{title, record, record_end, records_total, truncated, text}` |
 | `record_text` | `volume_id`, `record_index` | single raw record: `{text}` |
 | `search` | `volume_id`, `query`, `limit?` | FTS5 hits: `[{record, node_index, chapter, snippet}]` |
-| `images` | `volume_id`, `level?` | figures: `{levels, level, images: [{name, width, height, bpp, bytes, url}]}` |
+| `images` | `volume_id`, `level?` | figures: `{levels, level, images: [{name, width, height, bpp, bytes, level, url}]}` |
 
 `node_text` concatenates every record from the node's start record up to the
 next non-descendant node (capped at 100 records / 300k chars, `truncated: true`
@@ -81,7 +81,7 @@ vol.node_text(i, max_records=100)  # decoded chapter
 vol.node_for_record(r)  # deepest TocNode containing record r
 vol.search("Nathanael", limit=20)  # [{record, node_index, chapter, snippet}]
 vol.image_levels()  # e.g. [1, 2, 3, 4]
-vol.images(level=None)  # [{name, width, height, bpp, bytes}]
+vol.images(level=None)  # [{name, width, height, bpp, bytes, level}] (level = served zoom)
 vol.image_bytes(level, name)  # raw BMP bytes
 vol.node_image_refs(i)  # figure names referenced by chapter i
 ```

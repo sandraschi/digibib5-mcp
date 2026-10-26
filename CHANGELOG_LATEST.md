@@ -1,5 +1,14 @@
 # digibib5-mcp - latest changes
 
+## 0.5.0 (2026-10-26) - images.lib figures (DB074 shows pictures again)
+
+DB074 keeps figures in a 647 MB `IMAGES/images.lib` container, not loose
+BMPs: `[magic][stride-95 entries][blobs]`, three zoom levels per entry with
+byte-offset/size pairs (level 3 optional). `images()` / `image_bytes()` /
+the reader strip now work for lib volumes too (missing zooms fall back
+downward; per-figure `level` reports what is served). Live-tested on DB074
+(3564 figures, BWE1343a in the Moritz chapter).
+
 ## 0.4.1 (2026-10-26) - newer-disc format variant (DB074)
 
 DB074 (Busch, 2508 TOC nodes) crashed the TOC endpoint: its TEXT.DKI has no
