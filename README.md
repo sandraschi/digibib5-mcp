@@ -127,3 +127,14 @@ Vite 6, Tailwind 4, Bun.
 
 For reading Digitale Bibliothek volumes you own. Intended for interoperability,
 preservation, and access on modern systems.
+
+**Interoperability note (not legal advice).** This project contains no
+copy-protection circumvention and redistributes no content from the discs:
+no texts, no images, no audio, no keys - only code that reads CD-ROMs you
+own. The `.DKI` container is an undocumented but unprotected format; nothing
+here defeats an effective technical protection measure. Reverse-engineering
+a file format to make lawfully acquired data usable on current systems is
+the interoperability case the EU Software Directive (Art. 6) expressly
+permits. "Digitale Bibliothek" is named only to describe compatibility.
+If you are unsure in your jurisdiction, ask a lawyer before redistributing
+anything beyond the code.
