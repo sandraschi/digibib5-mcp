@@ -1,6 +1,6 @@
 {
     "name": "digibib5-mcp",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "type": "server",
     "runtime": "python",
     "entry_point": "src/digibib5_mcp/server.py",
