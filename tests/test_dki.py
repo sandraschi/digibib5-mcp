@@ -30,6 +30,72 @@ def test_parse_bmp_info():
     assert parse_bmp_info(b"BM") is None
 
 
+def _png_1x1() -> bytes:
+    import binascii
+    import zlib
+
+    def chunk(tag: bytes, payload: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(payload))
+            + tag
+            + payload
+            + struct.pack(">I", binascii.crc32(tag + payload) & 0xFFFFFFFF)
+        )
+
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    raw = b"\x00\xff\x00\x00"  # filter 0 + red pixel
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+
+def _make_lib(tmp_path, names=("bwe0001a", "bwe0002a")) -> DigibibVolume:
+    imgdir = tmp_path / "IMAGES"
+    imgdir.mkdir(parents=True)
+    png = _png_1x1()
+    entries = bytearray(b"\x24\x19\x00\x00" + b"\x00" * 28)  # magic + pad to 32
+    # first pass: reserve index space (len(entries) * 95)
+    index_len = len(names) * 95
+    data_off = 32 + index_len
+    blobs_list = []
+    for _ in names:
+        blobs_list.append(bytes(png))
+    for i, name in enumerate(names):
+        nb = name.encode("ascii")
+        body = bytearray(85)
+        struct.pack_into("<HHII", body, 20, 1, 1, data_off, len(png))
+        body[32] = 0x0A
+        struct.pack_into("<HHII", body, 33, 1, 1, data_off, len(png))
+        body[45] = 0x02
+        struct.pack_into("<HHII", body, 46, 1, 1, data_off, len(png))
+        entry = bytes([len(nb)]) + nb + b"\x00" + bytes(body)
+        assert len(entry) == 95
+        entries += entry
+        data_off += len(png)
+    (imgdir / "images.lib").write_bytes(bytes(entries) + b"".join(blobs_list))
+    (tmp_path / "DIGIBIB.TXT").write_bytes(b"[Default]\nCaption=Testlib\n")
+    (tmp_path / "TREE.DKI").write_bytes(b"Root\r\n")
+    (tmp_path / "TEXT.DKI").write_bytes(struct.pack("<I", 0) + struct.pack("<I", 1))
+    return DigibibVolume(tmp_path)
+
+
+def test_images_lib_hermetic(tmp_path):
+    vol = _make_lib(tmp_path)
+    assert vol.image_levels() == [1, 2, 3]
+    figs = vol.images(1)
+    assert len(figs) == 2
+    assert figs[0]["name"] == "BWE0001A"
+    assert (figs[0]["width"], figs[0]["height"]) == (1, 1)
+    data = vol.image_bytes(1, "bwe0001a.png")
+    assert data[:4] == b"\x89PNG"
+    # extensionless + case-insensitive lookup works too
+    assert vol.image_bytes(3, "BWE0002A")[:4] == b"\x89PNG"
+    for bad in ("../evil.png", "nope9999.png", "x"):
+        try:
+            vol.image_bytes(1, bad)
+            raise AssertionError(f"accepted {bad}")
+        except FileNotFoundError:
+            pass
+
+
 def test_images_hermetic(tmp_path):
     imgdir = tmp_path / "IMAGES" / "1"
     imgdir.mkdir(parents=True)
@@ -321,6 +387,32 @@ def test_live_db074_toc_and_mapping():
     text = vol.node_text(117)
     assert "Moritz" in text
     assert "Streichen" in text
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db074_images():
+    # images.lib container: 3 zoom levels, thousands of figures.
+    vol = DigibibLibrary().open("DB074")
+    assert vol._images_lib() is not None
+    assert vol.image_levels() == [1, 2, 3]
+    figs = vol.images(1)
+    assert len(figs) > 3000
+    by_name = {f["name"]: f for f in figs}
+    assert by_name["BWE1011A"]["width"] == 84
+    assert by_name["BWE1011A"]["height"] == 100
+    assert by_name["BBR1000A"]["width"] == 70
+    data = vol.image_bytes(1, "bwe1011a.png")
+    assert data[:4] == b"\x89PNG"
+    full = vol.image_bytes(3, "BWE1011A")
+    assert full[:2] == b"\xff\xd8"  # JPEG full size
+    assert len(full) > len(data)
+    refs = vol.node_image_refs(117)  # Max und Moritz chapter
+    assert any("1343" in r for r in refs)
+    try:
+        vol.image_bytes(1, "zzq9999z.png")
+        raise AssertionError("missing figure accepted")
+    except FileNotFoundError:
+        pass
 
 
 @pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")

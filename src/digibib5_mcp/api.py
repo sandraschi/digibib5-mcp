@@ -27,7 +27,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
 from . import llm as llm_engine
-from .dki import MAX_NODE_RECORDS, DigibibLibrary
+from .dki import MAX_NODE_RECORDS, DigibibLibrary, image_mime
 
 # ------------------------------------------------------------- request log
 LOG_BUFFER: collections.deque[dict[str, Any]] = collections.deque(maxlen=500)
@@ -241,7 +241,7 @@ async def image_file(request: Request) -> Response:
         data = vol.image_bytes(lv, request.path_params["name"])
     except (ValueError, FileNotFoundError) as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=404)
-    return Response(content=data, media_type="image/bmp")
+    return Response(content=data, media_type=image_mime(data) or "application/octet-stream")
 
     return Response(content=data, media_type="image/bmp")
 

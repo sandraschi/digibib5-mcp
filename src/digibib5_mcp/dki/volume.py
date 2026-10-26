@@ -25,10 +25,26 @@ from .codec import decode_record_content, postprocess_text
 
 CP = "cp1252"
 
-# Figure refs in record bytes, e.g. b"0092.bmp" (introduced by opcode 0x0B).
-_BMP_REF = re.compile(rb"(?i)\b([0-9A-Za-z]+\.bmp)\b")
-# Strict file name guard for serving (no traversal): e.g. "0092.BMP".
-_IMAGE_NAME = re.compile(r"(?i)^[0-9A-Za-z]+\.bmp$")
+# Figure refs in record bytes, e.g. b"0092.bmp" (DB008) or b"BWE1343a.png" (DB074).
+_FIGURE_REF = re.compile(rb"(?i)\b([0-9A-Za-z]+\.(?:bmp|png|jpe?g|gif))\b")
+# Strict file name guard for serving (no traversal). Extension optional so
+# bare index names (images.lib entries like "BWE0001A") resolve too.
+_IMAGE_NAME = re.compile(r"(?i)^[0-9A-Za-z]+(?:\.[A-Za-z0-9]{2,4})?$")
+# Loose-dir figures must carry a real image extension (keeps Thumbs.db out).
+_IMAGE_EXTS = (".bmp", ".png", ".jpg", ".jpeg", ".gif")
+
+
+def image_mime(data: bytes) -> str | None:
+    """MIME type from image magic bytes (BMP/PNG/JPEG/GIF), else None."""
+    if data[:2] == b"BM":
+        return "image/bmp"
+    if data[:4] == b"\x89PNG":
+        return "image/png"
+    if data[:2] == b"\xff\xd8":
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    return None
 
 
 def parse_bmp_info(data: bytes) -> dict | None:
@@ -389,58 +405,198 @@ class DigibibVolume:
     # -------------------------------------------------------------- images
     def _images_dir(self) -> Path | None:
         # DB008 keeps IMAGES/ next to data/ at the volume root; the format
-        # doc has it inside data/. Support both.
+        # doc has it inside data/. Check both.
         for cand in (self.data_dir / "IMAGES", self.data_dir.parent / "IMAGES"):
             if cand.is_dir():
                 return cand
         return None
 
+    def _images_lib(self) -> Path | None:
+        # Newer discs (DB074) pack figures into a single images.lib next to
+        # (or inside) data/ instead of loose IMAGES/1..4/*.BMP files.
+        for cand in (self.data_dir / "IMAGES", self.data_dir.parent / "IMAGES"):
+            if not cand.is_dir():
+                continue
+            for p in cand.iterdir():
+                if p.is_file() and p.name.lower() == "images.lib":
+                    return p
+        return None
+
+    # images.lib index: stride-95 entries ``[u8 len][name][0x00][85B body]``.
+    # Per-level (width, height, offset, size), BODY-relative; L1 has no tag
+    # byte, L2/L3 are preceded by one (0x0a / 0x02 — ignored).
+    _LIB_LEVELS = ((20, 22, 24, 28), (33, 35, 37, 41), (46, 48, 50, 54))
+
+    def _load_lib_index(self) -> dict[str, int]:
+        """Map lowercased figure name -> entry file offset. Empty when absent."""
+        if self.__dict__.get("_lib_index_cache") is not None:
+            return self.__dict__["_lib_index_cache"]
+        index: dict[str, int] = {}
+        lib = self._images_lib()
+        if lib is not None:
+            try:
+                with open(lib, "rb") as f:
+                    f.seek(0, 2)
+                    size = f.tell()
+                    pos = 32
+                    while pos + 96 <= size and len(index) < 100000:
+                        f.seek(pos)
+                        head = f.read(40)
+                        if len(head) < 10 or not 1 <= head[0] <= 32:
+                            break
+                        name = head[1 : 1 + head[0]]
+                        try:
+                            text = bytes(name).decode("ascii")
+                        except UnicodeDecodeError:
+                            break
+                        if not text or not all(c.isalnum() or c in "-_" for c in text):
+                            break
+                        index[text.lower()] = pos
+                        pos += 95
+            except OSError:
+                pass
+        self.__dict__["_lib_index_cache"] = index
+        return index
+
+    @classmethod
+    def _lib_entry(cls, record: bytes, level: int) -> tuple[int, int, int, int] | None:
+        """(width, height, offset, size) for a lib entry's zoom level, or None."""
+        if level < 1 or level > 3 or len(record) < 95 or not 1 <= record[0] <= 32:
+            return None
+        body = record[1 + record[0] + 1 :]
+        w_off, h_off, o_off, s_off = cls._LIB_LEVELS[level - 1]
+        if len(body) < s_off + 4:
+            return None
+        w = struct.unpack_from("<H", body, w_off)[0]
+        h = struct.unpack_from("<H", body, h_off)[0]
+        off = struct.unpack_from("<I", body, o_off)[0]
+        size = struct.unpack_from("<I", body, s_off)[0]
+        if not (0 < w <= 10000 and 0 < h <= 10000 and 0 < size <= 50_000_000):
+            return None
+        return (w, h, off, size)
+
     def image_levels(self) -> list[int]:
-        """Available zoom levels (subfolders 1..4)."""
+        """Available zoom levels (subfolders 1..4, or 1..3 inside images.lib)."""
+        if self._images_lib() is not None:
+            return [1, 2, 3]
         d = self._images_dir()
         if d is None:
             return []
         return sorted(int(p.name) for p in d.iterdir() if p.is_dir() and p.name.isdigit())
 
     def images(self, level: int | None = None) -> list[dict]:
-        """Figures at a zoom level: [{name, width, height, bpp, bytes}]."""
-        d = self._images_dir()
-        if d is None:
-            return []
+        """Figures at a zoom level: [{name, width, height, bpp, bytes, level}].
+
+        images.lib entries may lack the largest zoom; those fall back to the
+        nearest smaller one (``level`` reports what is actually served).
+        """
         levels = self.image_levels()
         if not levels:
             return []
         if level is None:
             level = max(levels)
+        if level not in levels:
+            return []
+        if self._images_lib() is not None:
+            out = []
+            for name in sorted(self._load_lib_index()):
+                hit = self._lib_figure(name, level)
+                if hit is None:
+                    continue
+                lv, info = hit
+                out.append(
+                    {
+                        "name": name.upper(),
+                        "width": info["width"],
+                        "height": info["height"],
+                        "bpp": None,
+                        "bytes": info["size"],
+                        "level": lv,
+                    }
+                )
+            return out
+        d = self._images_dir()
+        assert d is not None
         ldir = d / str(level)
         if not ldir.is_dir():
             return []
         out = []
         for p in sorted(ldir.iterdir()):
-            if p.is_file() and _IMAGE_NAME.match(p.name):
-                with open(p, "rb") as f:
-                    info = parse_bmp_info(f.read(60))
-                out.append(
-                    {
-                        "name": p.name.upper(),
-                        "width": info["width"] if info else None,
-                        "height": info["height"] if info else None,
-                        "bpp": info["bpp"] if info else None,
-                        "bytes": p.stat().st_size,
-                    }
-                )
+            if not p.is_file() or not _IMAGE_NAME.match(p.name):
+                continue
+            if p.suffix.lower() not in _IMAGE_EXTS:
+                continue
+            with open(p, "rb") as f:
+                info = parse_bmp_info(f.read(60))
+            out.append(
+                {
+                    "name": p.name.upper(),
+                    "width": info["width"] if info else None,
+                    "height": info["height"] if info else None,
+                    "bpp": info["bpp"] if info else None,
+                    "bytes": p.stat().st_size,
+                    "level": level,
+                }
+            )
         return out
+
+    def _lib_figure(self, name: str, level: int) -> tuple[int, dict] | None:
+        """Entry's best (level, info) at or below the requested level.
+
+        Some figures lack the largest zoom; falling back to a smaller one
+        beats a 404 in the reader.
+        """
+        index = self._load_lib_index()
+        pos = index.get(self._figure_stem(name))
+        if pos is None:
+            return None
+        lib = self._images_lib()
+        if lib is None:
+            return None
+        try:
+            with open(lib, "rb") as f:
+                f.seek(pos)
+                entry = f.read(95)
+        except OSError:
+            return None
+        for lv in range(min(level, 3), 0, -1):
+            info = self._lib_entry(entry, lv)
+            if info is not None:
+                return lv, {"width": info[0], "height": info[1], "off": info[2], "size": info[3]}
+        return None
+
+    @staticmethod
+    def _figure_stem(name: str) -> str:
+        stem = (name or "").rsplit(".", 1)[0] if "." in (name or "") else (name or "")
+        return stem.lower()
 
     def image_bytes(self, level: int, name: str) -> bytes:
         """Raw bytes of one figure (name validated against traversal)."""
         if not _IMAGE_NAME.match(name or ""):
             raise FileNotFoundError(f"bad image name: {name!r}")
+        lib = self._images_lib()
+        if lib is not None:
+            if level not in (1, 2, 3):
+                raise FileNotFoundError(f"bad level: {level!r}")
+            hit = self._lib_figure(name, level)
+            if hit is None:
+                raise FileNotFoundError(f"image not found: {level}/{name}")
+            _lv, info = hit
+            with open(lib, "rb") as f:
+                f.seek(info["off"])
+                data = f.read(info["size"])
+            if image_mime(data) is None:
+                raise FileNotFoundError(f"image data invalid: {level}/{name}")
+            return data
         d = self._images_dir()
         if d is None:
             raise FileNotFoundError(f"no IMAGES dir in {self.data_dir}")
-        for cand in (d / str(level) / name.upper(), d / str(level) / name.lower()):
-            if cand.is_file():
-                return cand.read_bytes()
+        ldir = d / str(level)
+        if ldir.is_dir():
+            want = self._figure_stem(name)
+            for cand in sorted(ldir.iterdir()):
+                if cand.is_file() and self._figure_stem(cand.name) == want:
+                    return cand.read_bytes()
         raise FileNotFoundError(f"image not found: {level}/{name}")
 
     def node_image_refs(self, node_index: int) -> list[str]:
@@ -448,14 +604,18 @@ class DigibibVolume:
         span = self.node_extent(node_index)
         if span[0] is None or span[1] is None:
             return []
+        lib_index = self._load_lib_index() if self._images_lib() is not None else None
         found: set[str] = set()
         for r in range(span[0], min(span[1], self.record_count)):
             try:
                 raw = self.raw_record(r)
             except IndexError:
                 break
-            for m in _BMP_REF.finditer(raw):
-                found.add(m.group(1).decode("ascii", "replace").upper())
+            for m in _FIGURE_REF.finditer(raw):
+                name = m.group(1).decode("ascii", "replace").upper()
+                if lib_index is not None and self._figure_stem(name) not in lib_index:
+                    continue
+                found.add(name)
         return sorted(found)
 
     def search(self, query: str, limit: int = 20) -> list[dict]:
