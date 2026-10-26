@@ -1,6 +1,6 @@
 [project]
 name = "digibib5-mcp"
-version = "0.4.1"
+version = "0.5.0"
 description = "Digitale Bibliothek 5 reader clone - DKI format library + MCP server"
 authors = [{ name = "Sandra Schipal" }]
 readme = "README.md"
