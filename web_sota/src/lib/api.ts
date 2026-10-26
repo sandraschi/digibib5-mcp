@@ -30,6 +30,9 @@ export interface TextResponse {
   record_index?: number;
   title?: string;
   record?: number | null;
+  record_end?: number | null;
+  records_total?: number;
+  truncated?: boolean;
   text: string;
   error?: string;
 }

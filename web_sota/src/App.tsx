@@ -204,19 +204,33 @@ export default function App() {
                 </h1>
                 <div className="mb-4 flex items-center gap-3 text-xs text-gray-500">
                   {content.node_index != null && <span>node #{content.node_index}</span>}
-                  {content.record != null && <span>record #{content.record}</span>}
+                  {content.record != null && content.record_end != null && (
+                    <span>
+                      records #{content.record}-{content.record_end - 1}
+                      {content.records_total != null && content.records_total > 1 && (
+                        <> ({content.records_total})</>
+                      )}
+                      {content.truncated && <> - truncated, chapter continues</>}
+                    </span>
+                  )}
+                  {content.record != null && content.record_end == null && (
+                    <span>record #{content.record}</span>
+                  )}
                   {content.record_index != null && <span>record #{content.record_index}</span>}
                 </div>
-                {content.text?.trim() ? (
-                  <div className="record-prose text-[15px] text-gray-200">{content.text}</div>
-                ) : (
+                    {content.text?.trim() ? (
+                      <div className="record-prose text-gray-200" lang="de">
+                        {content.text}
+                      </div>
+                    ) : (
                   <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-                    No text for this node. The TREE.DKA node-to-record mapping is v1/approximate - try
-                    the "jump to #" record browser on the left to read records directly.
+                    No text for this node. Try the "jump to #" record browser on the left to read
+                    records directly.
                   </div>
                 )}
                 <p className="mt-6 border-t border-white/5 pt-3 text-xs text-gray-600">
-                  Text decode is v1/approximate - readable but not yet byte-faithful.
+                  Text decode is v1/approximate - readable but not yet byte-faithful. A chapter shows
+                  all its records; the volume root is capped at 100.
                 </p>
               </article>
             )}
