@@ -1,0 +1,22 @@
+# digibib5-mcp
+
+> FastMCP Digitale Bibliothek 5 reader: reverse-engineered DKI volumes (TOC, decoded text, FTS5 search, figure scans) + React/Vite reader (ports 14114/14115).
+
+**Full doc (tools, env, packaging, troubleshooting):** [llms-full.txt](llms-full.txt)
+
+## Entry
+
+- Python package: `src/digibib5_mcp/` — `server.py` (`digibib` portmanteau tool, stdio), `api.py` (Starlette REST on 14115), `dki/` (volume/TOC/codec/search/images).
+- Web: `web_sota/` — React + Vite + Tailwind reader on 14114 (proxies `/api` to 14115).
+- Docs: `README.md`, `INSTALL.md`, `docs/` (CONFIGURATION, TOOLS, DEVELOPMENT, TROUBLESHOOTING, ONBOARDING).
+- Library root env: `DIGIBIB_ROOT` (default `K:\Digitale Bibliothek\Bibliothek`).
+
+## Tools (`digibib` op)
+
+`list_volumes` | `descriptor` | `toc` | `node_text` (chapter extent + images) | `record_text` | `search` (FTS5 + snippets) | `images` (figure list + REST urls)
+
+## Security
+
+- No network calls, no keys, no accounts — everything is local disc data.
+- `image_bytes()` validates file names against traversal (`^[A-Za-z0-9]+\.bmp$`); figure serving 404s on missing levels.
+- Decoded disc text is treated as data, not instructions.

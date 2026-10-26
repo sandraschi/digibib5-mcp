@@ -1,0 +1,36 @@
+# Logic/Dev Bloat
+.venv/
+node_modules/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+tests/
+
+# Discovery & Fleet Metadata
+glama.json
+llms.txt
+llms-full.txt
+.git/
+.github/
+.vscode/
+
+# Build Artifacts
+dist/
+build/
+*.mcpb
+
+# Webapp (served separately, not bundled)
+web_sota/
+web/
+
+# Local caches
+data/
+
+# Editor / tooling backups (added 2026-07-26)
+# Sneak-in specialists leave timestamped backups; both patterns required.
+# Backup files accumulate in mcpb/src because editing tools write them next to
+# the file they touch. They were found committed inside mcpb/src in the fleet.
+*.bak
+*.bak.*
+*.orig
+*.rej

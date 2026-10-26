@@ -1,0 +1,56 @@
+# digibib5-mcp — full reference
+
+> FastMCP Digitale Bibliothek 5 reader: reverse-engineered DKI volumes (TOC, decoded text, FTS5 search, figure scans) + React/Vite reader (ports 14114/14115). Stdio MCP only; REST backend on 14115.
+
+## MCP tool: `digibib(operation=...)`
+
+| op | args | returns |
+|----|------|---------|
+| `list_volumes` | — | `{volumes: [{id, title}], count}` |
+| `descriptor` | `volume_id` | `{title, descriptor}` (DIGIBIB.TXT keys) |
+| `toc` | `volume_id`, `max_depth?` | nested `{index, title, depth, record, children?}` + counts |
+| `node_text` | `volume_id`, `node_index` | chapter: `{title, record, record_end, records_total, truncated, images, image_levels, text}` |
+| `record_text` | `volume_id`, `record_index` | `{text}` single raw record |
+| `search` | `volume_id`, `query`, `limit?` | `{results: [{record, node_index, chapter, snippet}]}` (FTS5, `«»` snippets) |
+| `images` | `volume_id`, `level?` | `{levels, level, images: [{name, width, height, bpp, bytes, url}]}` |
+
+All ops accept optional `root` (overrides `DIGIBIB_ROOT`).
+
+## Environment
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `DIGIBIB_ROOT` | `K:\Digitale Bibliothek\Bibliothek` | library root scanned for volumes |
+| `DIGIBIB_API_PORT` | `14115` | REST backend port |
+| `DIGIBIB_CACHE_DIR` | `<repo>/data` | FTS5 sidecar location (`search.db`) |
+
+## REST (`http://127.0.0.1:14115`)
+
+`GET /api/health`, `/api/volumes`, `/api/volume/{vid}/descriptor`,
+`/api/volume/{vid}/toc`, `/api/volume/{vid}/node/{idx}/text`,
+`/api/volume/{vid}/record/{idx}/text`, `/api/volume/{vid}/search?q=&limit=`,
+`/api/volume/{vid}/images`, `/api/volume/{vid}/image/{level}/{name}` (raw BMP).
+`?root=` overrides the library root on every endpoint.
+
+## Format notes
+
+- `TREE.DKI`: TOC as indented CP1252 text. `TREE.DKA`: 1-based monotonic
+  start-record run (entry i → node i+1 as `record = entry - 1`, root → 0).
+- `TEXT.DKI`: `[count][offsets][records]`; word-stream codec v2 (reflow,
+  0x13 head-drop, de-hyphenation, 0x8B/0x9B literal spans, 0x2D dashes).
+- `IMAGES/1..4/*.BMP` next to or inside `data/`; chapter refs via opcode `0x0B`.
+- Native `INDEX.*`/`LINKS.*` only partly mapped — search uses decoded-text FTS5.
+
+## Packaging
+
+- `just pack` → `dist/` per `mcpb.json` (`.mcpbignore` enforced); `just release`
+  runs the triple-play (mcpb + NSIS + GitHub release).
+- Version lives in 4 places, bump together: `pyproject.toml`, `mcpb.json`,
+  `manifest.json`, `server.py` (`FastMCP(..., version=...)`).
+
+## Troubleshooting (short)
+
+- Empty volume list → `DIGIBIB_ROOT` wrong or discs unmounted.
+- Empty chapter text → volume without `TREE.DKA` (e.g. DB012); use record browser.
+- First search slow (~10 s) → FTS cache build; cached in `data/search.db`.
+- Port in use → `stop.bat`, then retry. `uv sync --extra dev --extra test` for deps.
