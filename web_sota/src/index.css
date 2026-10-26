@@ -1,33 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: dark;
+	color-scheme: dark;
 }
 
 html,
 body,
 #root {
-  height: 100%;
-  margin: 0;
+	height: 100%;
+	margin: 0;
 }
 
 body {
-  background: #0b0f17;
-  color: #e5e7eb;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	background: #0b0f17;
+	color: #e5e7eb;
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 /* flowing body text for decoded records: print line-breaks are reflowed by
    the codec, so the reader sets a book-like measure with justification and
    automatic (German) hyphenation instead of ragged print columns */
 .record-prose {
-  white-space: pre-wrap;
-  word-break: normal;
-  overflow-wrap: break-word;
-  line-height: 1.8;
-  font-size: 1.05rem;
-  font-family: Georgia, "Times New Roman", serif;
-  max-width: 68ch;
-  text-align: justify;
-  hyphens: auto;
+	white-space: pre-wrap;
+	word-break: normal;
+	overflow-wrap: break-word;
+	line-height: 1.8;
+	font-size: 1.05rem;
+	font-family: Georgia, "Times New Roman", serif;
+	max-width: 68ch;
+	text-align: justify;
+	hyphens: auto;
 }
