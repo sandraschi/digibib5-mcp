@@ -1,0 +1,65 @@
+# Development
+
+## Layout
+
+```
+src/digibib5_mcp/
+  dki/
+    library.py   # DigibibLibrary: root scan, volume discovery
+    volume.py    # DigibibVolume: descriptor, TOC, records, extents
+    codec.py     # tokenized word-stream decoder (v2 grammar)
+  server.py      # FastMCP stdio server, `digibib` portmanteau
+  api.py         # Starlette REST backend (port 14115)
+tests/test_dki.py  # synthetic codec tests + live-volume tests (skip w/o discs)
+web_sota/          # React 18 + Vite 6 + Tailwind 4 reader (port 14114)
+scripts/           # release.ps1 (triple-play), mcpb-pack.ps1, just/
+```
+
+## Gates
+
+```sh
+just gates-green   # ruff check + ruff format --check + pytest, all green
+just test          # pytest tests/
+just lint / just fix  # ruff (+ biome for web_sota via bunx)
+```
+
+`tests/test_dki.py` runs synthetic codec tests everywhere; live DB008 tests
+skip automatically when no discs are mounted (`DIGIBIB_ROOT` absent), so CI
+without the library still passes. Webapp: `bunx tsc --noEmit` in `web_sota/`.
+
+## Codec v2 opcode map (`codec.py`)
+
+Pipeline: `_content_region` (strip `#q:` markers) -> `decode_tokens` ->
+`render_text` (reflow + `postprocess_text` normalization).
+
+| Byte(s) | Meaning | Render |
+|---------|---------|--------|
+| `<len><bytes>` printable | word, optional trailing inline punct | word, single-space joined |
+| `0x00` | word terminator / stray | dropped |
+| `0x01` (+ runs) | spacing/formatting | dropped |
+| `0x02` single | soft print-layout break | space (reflow) |
+| `0x02` run 2+ | paragraph break | blank line |
+| `0x15` (+ break run) | paragraph marker | blank line |
+| break + `00 04 01` | paragraph start | blank line |
+| `0x13` + word | page running-head (`Hoffmann-PW Bd. N`, `rororo-*`) | dropped wherever it occurs |
+| `0x08` / `00 08 00` | title/attribute frame ends | dropped |
+| `0x04/05/06/07/0F/10` + operand | style attributes | dropped with operands |
+| `0x0B` + word | cross-reference (`hoffwN` work link, `NNNN.bmp` figure) | reference word kept |
+| `0x19 08 03 01` | body start after head | dropped (breaks remain) |
+| `0x8B`/`0x9B` | transparent literal-group markers | markers dropped, printable run inside decoded as text |
+| lone `0x2D` | spaced dash (Gedankenstrich) | `-` word |
+| `word-` + break + lower | hyphenated line split | joined, hyphen dropped (`Hoff-\nmanns` -> `Hoffmanns`) |
+| `word-` + break + Upper | true hyphen compound | joined, hyphen kept (`Serapions-\nBruder` -> `Serapions-Bruder`) |
+| glued `«‹„"` at word start | opening quote | split off (`hoffw1«Meister` -> `hoffw1 «Meister`) |
+
+`0x02` doubles as the length of 2-letter words (`E.`); the printable-chunk
+check disambiguates. Open (evidence-thin, left dropped): `0x0E` block markers,
+`0x0C` block ends, heading levels, italics, lone `0x84/0x94/0xAB/0xBB`
+(`0x94` verified as a `0x0F` operand).
+
+## Release
+
+`just release` runs `scripts/release.ps1`: MCPB bundle (`just pack` ->
+`dist/`, per `mcpb.json`) + NSIS installer + GitHub release.
+`just release-dry` previews. Version bumps: `pyproject.toml`, `mcpb.json`,
+`manifest.json`, `server.py` (`FastMCP(..., version=...)`) together.
