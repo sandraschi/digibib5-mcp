@@ -1,6 +1,6 @@
 [project]
 name = "digibib5-mcp"
-version = "0.3.0"
+version = "0.4.0"
 description = "Digitale Bibliothek 5 reader clone - DKI format library + MCP server"
 authors = [{ name = "Sandra Schipal" }]
 readme = "README.md"
@@ -27,6 +27,9 @@ packages = ["src/digibib5_mcp"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient`.*:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 120

@@ -17,7 +17,7 @@ from pydantic import Field
 
 from .dki import MAX_NODE_RECORDS, DigibibLibrary
 
-mcp = FastMCP("digibib5-mcp", version="0.3.0")
+mcp = FastMCP("digibib5-mcp", version="0.4.0")
 
 
 def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
