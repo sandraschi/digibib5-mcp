@@ -10,6 +10,17 @@ The `.DKI` format was reversed from the real discs (see
 [reversing-mcp `docs/DIGIBIB5_DKI_FORMAT.md`](https://github.com/sandraschi/reversing-mcp/blob/master/docs/DIGIBIB5_DKI_FORMAT.md)).
 Digibib5 itself is the oracle: run it alongside to compare rendered output.
 
+## Documentation
+
+| Doc | What |
+|-----|------|
+| [INSTALL.md](INSTALL.md) | setup, MCP config |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | first-timer guide: discs, costs (none), sanity check |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | env vars, ports, per-volume file layout |
+| [docs/TOOLS.md](docs/TOOLS.md) | MCP ops, REST endpoints, Python library |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | repo layout, gates, codec map, release |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | symptoms and fixes |
+
 ## Status
 
 Early. What works today:

@@ -1,5 +1,7 @@
 # Install
 
+> **First time?** Complete [docs/ONBOARDING.md](docs/ONBOARDING.md) before expecting live host calls.
+
 For reading Digitale Bibliothek volumes you own (interoperability, preservation).
 
 ## Prerequisites
