@@ -19,7 +19,7 @@ webapp:
     Set-Location '{{justfile_directory()}}'
     powershell.exe -ExecutionPolicy Bypass -File ./web_sota/start.ps1
 
-# Start only the FastAPI backend (REST + MCP HTTP on 14115)
+# Start only the Starlette backend (REST on 14115)
 api:
     Set-Location '{{justfile_directory()}}'
     uv run python -m digibib5_mcp.api
@@ -50,6 +50,15 @@ pack:
 
 # --- Gates ---
 
+# Local CI mirror (same checks as .github/workflows/ci.yml)
+ci:
+    Set-Location '{{justfile_directory()}}'
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/Test-Ps51Parse.ps1 -Path .
+    uv run ruff check src/ tests/
+    uv run ruff format src/ tests/ --check
+    uv run pyright src/
+    uv run pytest tests/ -q --tb=short
+
 # Lint + format check + tests, all green or report exactly what failed
 gates-green:
     Set-Location '{{justfile_directory()}}'
@@ -76,5 +85,5 @@ test-failed:
 
 # Bootstrap: install dev deps
 bootstrap:
-    uv sync --group dev
+    uv sync --extra dev --extra test
     Write-Host "Dev environment ready." -ForegroundColor Green
