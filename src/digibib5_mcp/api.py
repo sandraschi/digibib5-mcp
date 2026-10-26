@@ -20,7 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from .dki import DigibibLibrary
+from .dki import MAX_NODE_RECORDS, DigibibLibrary
 
 
 def _library(request: Request) -> DigibibLibrary:
@@ -80,9 +80,7 @@ async def descriptor(request: Request) -> JSONResponse:
         vol, vid = _open(request)
     except KeyError as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=404)
-    return JSONResponse(
-        {"success": True, "volume_id": vid, "title": vol.title, "descriptor": vol.descriptor}
-    )
+    return JSONResponse({"success": True, "volume_id": vid, "title": vol.title, "descriptor": vol.descriptor})
 
 
 async def toc(request: Request) -> JSONResponse:
@@ -113,16 +111,33 @@ async def node_text(request: Request) -> JSONResponse:
     try:
         node = vol.toc_flat[idx]
     except IndexError:
+        return JSONResponse({"success": False, "error": f"node_index {idx} out of range."}, status_code=404)
+    start, end = vol.node_extent(idx)
+    if start is None or end is None:
         return JSONResponse(
-            {"success": False, "error": f"node_index {idx} out of range."}, status_code=404
+            {
+                "success": True,
+                "volume_id": vid,
+                "node_index": idx,
+                "title": node.title,
+                "record": None,
+                "record_end": None,
+                "records_total": 0,
+                "truncated": False,
+                "text": "",
+            }
         )
+    total = end - start
     return JSONResponse(
         {
             "success": True,
             "volume_id": vid,
             "node_index": idx,
             "title": node.title,
-            "record": node.record,
+            "record": start,
+            "record_end": end,
+            "records_total": total,
+            "truncated": total > MAX_NODE_RECORDS,
             "text": vol.node_text(idx),
         }
     )
@@ -138,9 +153,7 @@ async def record_text(request: Request) -> JSONResponse:
         text = vol.record_text(idx)
     except IndexError as e:
         return JSONResponse({"success": False, "error": str(e)}, status_code=404)
-    return JSONResponse(
-        {"success": True, "volume_id": vid, "record_index": idx, "text": text}
-    )
+    return JSONResponse({"success": True, "volume_id": vid, "record_index": idx, "text": text})
 
 
 routes = [

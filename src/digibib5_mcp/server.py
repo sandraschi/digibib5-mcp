@@ -2,9 +2,10 @@
 
 A clone-in-progress of the Digitale Bibliothek 5 reader. This server exposes the
 reverse-engineered DKI library (volume discovery, TOC, decoded text) as one
-`digibib` portmanteau tool. The reader webapp (UI) and the search indexes come
-later; the text codec and TREE.DKA node mapping are v1/approximate (see
-src/digibib5_mcp/dki and reversing-mcp/docs/DIGIBIB5_DKI_FORMAT.md).
+`digibib` portmanteau tool. The text codec is v1/approximate (see
+src/digibib5_mcp/dki and reversing-mcp/docs/DIGIBIB5_DKI_FORMAT.md); the
+TREE.DKA node->record mapping is solved (1-based table for all nodes but the
+root, located by monotonic-run scan).
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
-from .dki import DigibibLibrary
+from .dki import MAX_NODE_RECORDS, DigibibLibrary
 
 mcp = FastMCP("digibib5-mcp", version="0.1.0")
 
@@ -47,7 +48,9 @@ def digibib(
     node_index: Annotated[int | None, Field(description="toc node index (node_text).")] = None,
     record_index: Annotated[int | None, Field(description="record index (record_text).")] = None,
     max_depth: Annotated[int | None, Field(description="toc: limit nesting depth.")] = None,
-    root: Annotated[str | None, Field(description="Override the install root (default DIGIBIB_ROOT or K:\\...).")] = None,
+    root: Annotated[
+        str | None, Field(description="Override the install root (default DIGIBIB_ROOT or K:\\...).")
+    ] = None,
 ) -> dict[str, Any]:
     """
     DIGIBIB - read Digitale Bibliothek 5 volumes.
@@ -94,20 +97,49 @@ def digibib(
         try:
             node = vol.toc_flat[node_index]
         except IndexError:
-            return {"success": False, "error": f"node_index {node_index} out of range (0..{len(vol.toc_flat)-1})."}
-        return {"success": True, "volume_id": volume_id, "node_index": node_index,
-                "title": node.title, "record": node.record, "text": vol.node_text(node_index)}
+            return {"success": False, "error": f"node_index {node_index} out of range (0..{len(vol.toc_flat) - 1})."}
+        start, end = vol.node_extent(node_index)
+        if start is None or end is None:
+            return {
+                "success": True,
+                "volume_id": volume_id,
+                "node_index": node_index,
+                "title": node.title,
+                "record": None,
+                "record_end": None,
+                "records_total": 0,
+                "truncated": False,
+                "text": "",
+            }
+        total = end - start
+        return {
+            "success": True,
+            "volume_id": volume_id,
+            "node_index": node_index,
+            "title": node.title,
+            "record": start,
+            "record_end": end,
+            "records_total": total,
+            "truncated": total > MAX_NODE_RECORDS,
+            "text": vol.node_text(node_index),
+        }
     if op == "record_text":
         if record_index is None:
             return {"success": False, "error": "record_text needs record_index."}
         try:
-            return {"success": True, "volume_id": volume_id, "record_index": record_index,
-                    "text": vol.record_text(record_index)}
+            return {
+                "success": True,
+                "volume_id": volume_id,
+                "record_index": record_index,
+                "text": vol.record_text(record_index),
+            }
         except IndexError as e:
             return {"success": False, "error": str(e)}
 
-    return {"success": False, "error": f"Unknown operation '{operation}'. "
-            "Valid: list_volumes, descriptor, toc, node_text, record_text."}
+    return {
+        "success": False,
+        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text.",
+    }
 
 
 def main() -> None:
