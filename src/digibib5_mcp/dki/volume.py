@@ -22,6 +22,24 @@ from .codec import decode_record_content, postprocess_text
 
 CP = "cp1252"
 
+# Figure refs in record bytes, e.g. b"0092.bmp" (introduced by opcode 0x0B).
+_BMP_REF = re.compile(rb"(?i)\b([0-9A-Za-z]+\.bmp)\b")
+# Strict file name guard for serving (no traversal): e.g. "0092.BMP".
+_IMAGE_NAME = re.compile(r"(?i)^[0-9A-Za-z]+\.bmp$")
+
+
+def parse_bmp_info(data: bytes) -> dict | None:
+    """Width/height/bpp from a BMP header, or None (not a BMP / truncated)."""
+    if len(data) < 30 or data[:2] != b"BM":
+        return None
+    dib = struct.unpack_from("<I", data, 14)[0]
+    if dib < 40 or len(data) < 30:
+        return None
+    width, height = struct.unpack_from("<ii", data, 18)
+    bpp = struct.unpack_from("<H", data, 28)[0]
+    return {"width": width, "height": abs(height), "bpp": bpp, "bytes": len(data)}
+
+
 # Source-path marker in TEXT.DKI records, e.g. ``#q:\digibib\8hoff\texte\hoff-200.txt``.
 # Extension is usually ``.txt`` but ``.txi`` / ``.txx`` occur (DB008 records).
 _MARKER = re.compile(rb"#q:[^ \r\n]{0,90}?\.tx[A-Za-z0-9]")
@@ -290,6 +308,78 @@ class DigibibVolume:
                 if best is None or node.depth > best.depth:
                     best = node
         return best
+
+    # -------------------------------------------------------------- images
+    def _images_dir(self) -> Path | None:
+        # DB008 keeps IMAGES/ next to data/ at the volume root; the format
+        # doc has it inside data/. Support both.
+        for cand in (self.data_dir / "IMAGES", self.data_dir.parent / "IMAGES"):
+            if cand.is_dir():
+                return cand
+        return None
+
+    def image_levels(self) -> list[int]:
+        """Available zoom levels (subfolders 1..4)."""
+        d = self._images_dir()
+        if d is None:
+            return []
+        return sorted(int(p.name) for p in d.iterdir() if p.is_dir() and p.name.isdigit())
+
+    def images(self, level: int | None = None) -> list[dict]:
+        """Figures at a zoom level: [{name, width, height, bpp, bytes}]."""
+        d = self._images_dir()
+        if d is None:
+            return []
+        levels = self.image_levels()
+        if not levels:
+            return []
+        if level is None:
+            level = max(levels)
+        ldir = d / str(level)
+        if not ldir.is_dir():
+            return []
+        out = []
+        for p in sorted(ldir.iterdir()):
+            if p.is_file() and _IMAGE_NAME.match(p.name):
+                with open(p, "rb") as f:
+                    info = parse_bmp_info(f.read(60))
+                out.append(
+                    {
+                        "name": p.name.upper(),
+                        "width": info["width"] if info else None,
+                        "height": info["height"] if info else None,
+                        "bpp": info["bpp"] if info else None,
+                        "bytes": p.stat().st_size,
+                    }
+                )
+        return out
+
+    def image_bytes(self, level: int, name: str) -> bytes:
+        """Raw bytes of one figure (name validated against traversal)."""
+        if not _IMAGE_NAME.match(name or ""):
+            raise FileNotFoundError(f"bad image name: {name!r}")
+        d = self._images_dir()
+        if d is None:
+            raise FileNotFoundError(f"no IMAGES dir in {self.data_dir}")
+        for cand in (d / str(level) / name.upper(), d / str(level) / name.lower()):
+            if cand.is_file():
+                return cand.read_bytes()
+        raise FileNotFoundError(f"image not found: {level}/{name}")
+
+    def node_image_refs(self, node_index: int) -> list[str]:
+        """Figure file names referenced by a chapter's records (raw scan)."""
+        span = self.node_extent(node_index)
+        if span[0] is None or span[1] is None:
+            return []
+        found: set[str] = set()
+        for r in range(span[0], min(span[1], self.record_count)):
+            try:
+                raw = self.raw_record(r)
+            except IndexError:
+                break
+            for m in _BMP_REF.finditer(raw):
+                found.add(m.group(1).decode("ascii", "replace").upper())
+        return sorted(found)
 
     def search(self, query: str, limit: int = 20) -> list[dict]:
         """Full-text search over decoded chapter text (FTS5 sidecar, see

@@ -16,7 +16,7 @@ codec is v1/approximate (codec.py). Public API:
 from .codec import decode_record_content, decode_tokens, postprocess_text, render_text
 from .library import DigibibLibrary, VolumeRef
 from .search import ensure_built, search_records
-from .volume import MAX_NODE_CHARS, MAX_NODE_RECORDS, DigibibVolume, TocNode
+from .volume import MAX_NODE_CHARS, MAX_NODE_RECORDS, DigibibVolume, TocNode, parse_bmp_info
 
 __all__ = [
     "DigibibLibrary",
@@ -25,6 +25,7 @@ __all__ = [
     "TocNode",
     "MAX_NODE_RECORDS",
     "MAX_NODE_CHARS",
+    "parse_bmp_info",
     "decode_tokens",
     "render_text",
     "postprocess_text",
