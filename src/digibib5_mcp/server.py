@@ -17,7 +17,7 @@ from pydantic import Field
 
 from .dki import MAX_NODE_RECORDS, DigibibLibrary
 
-mcp = FastMCP("digibib5-mcp", version="0.2.0")
+mcp = FastMCP("digibib5-mcp", version="0.3.0")
 
 
 def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
 def digibib(
     operation: Annotated[
         str,
-        Field(description="list_volumes | descriptor | toc | node_text | record_text | search"),
+        Field(description="list_volumes | descriptor | toc | node_text | record_text | search | images"),
     ] = "list_volumes",
     volume_id: Annotated[
         str | None, Field(description="Volume folder id, e.g. 'DB008' (all ops except list_volumes).")
@@ -52,6 +52,7 @@ def digibib(
         str | None, Field(description='search: FTS5 query (words, AND/OR/NOT, "phrase", prefix*).')
     ] = None,
     limit: Annotated[int | None, Field(description="search: max hits (default 20, max 100).")] = None,
+    level: Annotated[int | None, Field(description="images: zoom level (default: highest).")] = None,
     root: Annotated[
         str | None, Field(description="Override the install root (default DIGIBIB_ROOT or K:\\...).")
     ] = None,
@@ -70,6 +71,10 @@ def digibib(
     - `search`        -> full-text search over decoded text (needs query):
                          [{record, node_index, chapter, snippet}]. First search
                          per volume builds an FTS cache (~10 s), then instant.
+    - `images`        -> figures at a zoom level (needs level or takes the
+                         highest): {levels, level, images: [{name, width,
+                         height, bpp, bytes, url}]}. Binary via the REST
+                         image endpoint (see url per figure).
 
     NOTE: text decode is v2 (flowing paragraphs, heads dropped); output is
     readable but not yet byte-faithful.
@@ -117,6 +122,7 @@ def digibib(
                 "record_end": None,
                 "records_total": 0,
                 "truncated": False,
+                "images": [],
                 "text": "",
             }
         total = end - start
@@ -129,6 +135,8 @@ def digibib(
             "record_end": end,
             "records_total": total,
             "truncated": total > MAX_NODE_RECORDS,
+            "images": vol.node_image_refs(node_index),
+            "image_levels": vol.image_levels(),
             "text": vol.node_text(node_index),
         }
     if op == "search":
@@ -141,6 +149,20 @@ def digibib(
             "query": query,
             "count": len(hits),
             "results": hits,
+        }
+    if op == "images":
+        levels = vol.image_levels()
+        lv = level if level in levels else (max(levels) if levels else None)
+        figs = vol.images(lv) if lv is not None else []
+        for f in figs:
+            f["url"] = f"/api/volume/{volume_id}/image/{lv}/{f['name']}"
+        return {
+            "success": True,
+            "volume_id": volume_id,
+            "levels": levels,
+            "level": lv,
+            "count": len(figs),
+            "images": figs,
         }
     if op == "record_text":
         if record_index is None:
@@ -157,7 +179,7 @@ def digibib(
 
     return {
         "success": False,
-        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text, search.",
+        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text, search, images.",
     }
 
 

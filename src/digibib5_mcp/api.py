@@ -17,7 +17,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from .dki import MAX_NODE_RECORDS, DigibibLibrary
@@ -138,6 +138,8 @@ async def node_text(request: Request) -> JSONResponse:
             "record_end": end,
             "records_total": total,
             "truncated": total > MAX_NODE_RECORDS,
+            "images": vol.node_image_refs(idx),
+            "image_levels": vol.image_levels(),
             "text": vol.node_text(idx),
         }
     )
@@ -172,6 +174,40 @@ async def search(request: Request) -> JSONResponse:
     return JSONResponse({"success": True, "volume_id": vid, "query": q, "count": len(hits), "results": hits})
 
 
+async def images(request: Request) -> JSONResponse:
+    try:
+        vol, vid = _open(request)
+    except KeyError as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=404)
+    levels = vol.image_levels()
+    lv_raw = request.query_params.get("level")
+    try:
+        lv = int(lv_raw) if lv_raw else None
+    except ValueError:
+        lv = None
+    if lv not in levels:
+        lv = max(levels) if levels else None
+    figs = vol.images(lv) if lv is not None else []
+    for f in figs:
+        f["url"] = f"/api/volume/{vid}/image/{lv}/{f['name']}"
+    return JSONResponse(
+        {"success": True, "volume_id": vid, "levels": levels, "level": lv, "count": len(figs), "images": figs}
+    )
+
+
+async def image_file(request: Request) -> Response:
+    try:
+        vol, _vid = _open(request)
+    except KeyError as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=404)
+    try:
+        lv = int(request.path_params["level"])
+        data = vol.image_bytes(lv, request.path_params["name"])
+    except (ValueError, FileNotFoundError) as e:
+        return JSONResponse({"success": False, "error": str(e)}, status_code=404)
+    return Response(content=data, media_type="image/bmp")
+
+
 routes = [
     Route("/api/health", health),
     Route("/api/volumes", volumes),
@@ -180,6 +216,8 @@ routes = [
     Route("/api/volume/{vid}/node/{idx:int}/text", node_text),
     Route("/api/volume/{vid}/record/{idx:int}/text", record_text),
     Route("/api/volume/{vid}/search", search),
+    Route("/api/volume/{vid}/images", images),
+    Route("/api/volume/{vid}/image/{level:int}/{name:str}", image_file),
 ]
 
 middleware = [

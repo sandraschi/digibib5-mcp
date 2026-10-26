@@ -13,7 +13,43 @@ import pytest
 
 from digibib5_mcp.dki import DigibibLibrary, decode_record_content, decode_tokens
 from digibib5_mcp.dki.search import ensure_built, search_records
-from digibib5_mcp.dki.volume import DigibibVolume
+from digibib5_mcp.dki.volume import DigibibVolume, parse_bmp_info
+
+
+def _bmp_2x2() -> bytes:
+    dib = struct.pack("<IiiHHIIiiII", 40, 2, 2, 1, 24, 0, 16, 0, 0, 0, 0)
+    fh = struct.pack("<2sIHHI", b"BM", 54 + 16, 0, 0, 54)
+    return fh + dib + b"\x00" * 16
+
+
+def test_parse_bmp_info():
+    info = parse_bmp_info(_bmp_2x2())
+    assert info is not None
+    assert (info["width"], info["height"], info["bpp"]) == (2, 2, 24)
+    assert parse_bmp_info(b"not a bmp") is None
+    assert parse_bmp_info(b"BM") is None
+
+
+def test_images_hermetic(tmp_path):
+    imgdir = tmp_path / "IMAGES" / "1"
+    imgdir.mkdir(parents=True)
+    (imgdir / "0001.BMP").write_bytes(_bmp_2x2())
+    vol = _make_volume(tmp_path, [_word("Hallo")])
+    assert vol.image_levels() == [1]
+    figs = vol.images()
+    assert len(figs) == 1 and figs[0]["name"] == "0001.BMP"
+    assert (figs[0]["width"], figs[0]["height"]) == (2, 2)
+    assert vol.image_bytes(1, "0001.bmp")[:2] == b"BM"
+    try:
+        vol.image_bytes(1, "../evil.bmp")
+        raise AssertionError("traversal accepted")
+    except FileNotFoundError:
+        pass
+    try:
+        vol.image_bytes(2, "0001.BMP")
+        raise AssertionError("missing level accepted")
+    except FileNotFoundError:
+        pass
 
 
 def _word(text: str) -> bytes:
@@ -212,3 +248,17 @@ def test_live_db008_search():
     assert all(h["chapter"] for h in hits)  # every hit resolves to a chapter
     dev = vol.search("Devrient")
     assert any(h["record"] in (290, 291) for h in dev)
+
+
+@pytest.mark.skipif(not _have_discs(), reason="no Digibib volumes under DIGIBIB_ROOT")
+def test_live_db008_images():
+    vol = DigibibLibrary().open("DB008")
+    assert vol.image_levels() == [1, 2, 3, 4]
+    figs = vol.images(1)
+    assert len(figs) == 53
+    f92 = next(f for f in figs if f["name"] == "0092.BMP")
+    assert (f92["width"], f92["height"], f92["bpp"]) == (100, 79, 8)
+    assert vol.image_bytes(1, "0092.BMP")[:2] == b"BM"
+    node = vol.node_for_record(5)  # Wittkop monograph, refs 0092.bmp
+    assert node is not None
+    assert "0092.BMP" in vol.node_image_refs(node.index)
