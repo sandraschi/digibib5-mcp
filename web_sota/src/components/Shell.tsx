@@ -18,8 +18,10 @@ import {
 	HelpCircle,
 	LayoutDashboard,
 	MessageSquare,
+	Moon,
 	Search,
 	Settings,
+	Sun,
 	Terminal,
 	Wrench,
 } from "lucide-react";
@@ -73,6 +75,35 @@ export function Shell({ children }: { children: React.ReactNode }) {
 	const navigate = useNavigate();
 	const [collapsed, setCollapsed] = useState(false);
 	const [topSearch, setTopSearch] = useState("");
+	// EXPERIMENTAL light mode (invert hack): dark is the default; opt-in
+	// choice persists in localStorage. See index.css invert block.
+	const [light, setLight] = useState(false);
+	useEffect(() => {
+		let initial = false;
+		try {
+			initial = localStorage.getItem("digibib5-mcp-light-mode") === "light";
+		} catch {
+			/* private mode */
+		}
+		setLight(initial);
+		document.documentElement.classList.toggle("dark", !initial);
+	}, []);
+
+	function toggleTheme() {
+		setLight((prev) => {
+			const next = !prev;
+			document.documentElement.classList.toggle("dark", !next);
+			try {
+				localStorage.setItem(
+					"digibib5-mcp-light-mode",
+					next ? "light" : "dark",
+				);
+			} catch {
+				/* private mode */
+			}
+			return next;
+		});
+	}
 	const location = useLocation();
 	const attemptRef = useRef(0);
 	const timerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -208,8 +239,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
 			{/* Main area */}
 			<div className="flex-1 flex flex-col overflow-hidden">
-				{/* Topbar: search, logs, help, status (no theme toggle: dark
-			    permanent; no login avatar: no accounts in this app) */}
+				{/* Topbar: search, logs, help, theme, status (no login avatar:
+				    no accounts in this app) */}
 				<header
 					className="flex items-center justify-between px-6 py-3 border-b border-zinc-800 bg-zinc-900 flex-shrink-0"
 					data-testid="topbar"
@@ -256,6 +287,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
 						>
 							<HelpCircle className="h-4 w-4" />
 						</NavLink>
+						<button
+							type="button"
+							onClick={toggleTheme}
+							title={light ? "Switch to dark mode" : "Switch to light mode"}
+							data-testid="topbar-theme"
+							className="text-zinc-500 hover:text-zinc-300"
+						>
+							{light ? (
+								<Moon className="h-4 w-4" />
+							) : (
+								<Sun className="h-4 w-4" />
+							)}
+						</button>
 						<div data-testid="backend-dot" className="flex items-center gap-2">
 							<div
 								className={`w-2 h-2 rounded-full ${statusColor} animate-pulse`}

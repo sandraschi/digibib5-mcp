@@ -95,6 +95,10 @@ const FAQS: Array<{ q: string; a: string }> = [
 		a: "The Logs page (ring buffer, newest last) and the backend console. MCP server logs: Claude Desktop log dir.",
 	},
 	{
+		q: "Is there a light mode?",
+		a: "Yes, the Sun/Moon button in the topbar (experimental invert filter, choice persists). Accent colors may look off in light mode — that is a known artifact of the inversion.",
+	},
+	{
 		q: "Do I need an account or API key?",
 		a: "No for reading/searching/figures. Only the Chat page needs a local LLM (Ollama/LM Studio, free) or a cloud key you paste in Settings.",
 	},
