@@ -1,22 +1,6 @@
 # digibib5-mcp - latest changes
 
-## 0.5.0 (2026-10-26) - images.lib figures (DB074 shows pictures again)
-
-Follow-up fixes (2026-10-27):
-- Codec: inline figure-reference tokens (`BWE1349a.png$`, `BUFAMM08.png`,
-  `NNNN.bmp`) and the 1-char operand byte in the same figure-marker group are
-  stripped from decoded prose, so DB074 (Busch) chapters read as clean verse.
-  Figures stay available via node `images` metadata; DB008 text is unchanged;
-  37 tests still pass.
-- Dashboard: the red "No library detected - set DIGIBIB_ROOT" banner no longer
-  fires while the backend is merely still starting. The page now distinguishes
-  backend-unreachable (amber, auto-retries up to 8x, manual Retry) from
-  backend-up-with-no-discs (red, actionable).
-- Volume titles: DIGIBIB.TXT is now parsed section-aware, so the real
-  `[Default]` Caption is used instead of a later section's generic
-  `Caption=Verzeichnisse`. All 76 volumes resolve to real titles (DB053 =
-  "Illustrierte Geschichte der Medizin", DB009 = "Killy Literaturlexikon", ...);
-  the fallback is the volume id, not the inner "Data" folder name.
+## 0.5.0 (2026-10-26/27) - images.lib figures (DB074 shows pictures again)
 
 DB074 keeps figures in a 647 MB `IMAGES/images.lib` container, not loose
 BMPs: `[magic][stride-95 entries][blobs]`, three zoom levels per entry with
@@ -24,6 +8,22 @@ byte-offset/size pairs (level 3 optional). `images()` / `image_bytes()` /
 the reader strip now work for lib volumes too (missing zooms fall back
 downward; per-figure `level` reports what is served). Live-tested on DB074
 (3564 figures, BWE1343a in the Moritz chapter).
+
+Follow-up fixes in the same release:
+- Codec: inline figure-reference tokens (`BWE1343a.png$`, `BUFAMM08.png`,
+  `NNNN.bmp`) and the 1-char operand byte in the same figure-marker group
+  are stripped from decoded prose, so DB074 (Busch) chapters read as clean
+  verse. Figures stay available via node `images` metadata; DB008 text is
+  unchanged; full suite green.
+- Dashboard: the red "No library detected - set DIGIBIB_ROOT" banner no
+  longer fires while the backend is merely still starting (amber offline
+  banner with auto-retry instead; red only when the backend answered with
+  no discs).
+- Volume titles: DIGIBIB.TXT is now parsed section-aware, so the real
+  `[Default]` Caption is used instead of a later section's generic
+  `Caption=Verzeichnisse`. All 76 volumes resolve to real titles (DB053 =
+  "Illustrierte Geschichte der Medizin", DB009 = "Killy Literaturlexikon");
+  the fallback is the volume id, not the inner "Data" folder name.
 
 ## 0.4.1 (2026-10-26) - newer-disc format variant (DB074)
 
