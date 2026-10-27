@@ -106,19 +106,37 @@ class DigibibVolume:
     @property
     def descriptor(self) -> dict[str, str]:
         if self._descriptor is None:
-            self._descriptor = {}
             raw = self._path("DIGIBIB.TXT").read_bytes().decode(CP, "replace")
+            # DIGIBIB.TXT is a sectioned INI. The volume identity (real title)
+            # lives in [Default]; later sections like [Stichwoerter] reuse the
+            # same key names ("Caption=Verzeichnisse" for the index view). A
+            # section-blind flatten let that generic Caption shadow the real
+            # title, so volumes showed up as "Verzeichnisse" / "Register".
+            sections: dict[str, dict[str, str]] = {}
+            current = "Default"
             for line in raw.splitlines():
                 line = line.strip()
-                if "=" in line and not line.startswith("["):
+                if line.startswith("[") and line.endswith("]"):
+                    current = line[1:-1].strip()
+                    sections.setdefault(current, {})
+                    continue
+                if "=" in line:
                     k, v = line.split("=", 1)
-                    self._descriptor[k.strip()] = v.strip()
+                    sections.setdefault(current, {})[k.strip()] = v.strip()
+            # Flatten with [Default] applied last so its identity keys win.
+            merged: dict[str, str] = {}
+            for name, kv in sections.items():
+                if name != "Default":
+                    merged.update(kv)
+            merged.update(sections.get("Default", {}))
+            self._descriptor = merged
         return self._descriptor
 
     @property
     def title(self) -> str:
         d = self.descriptor
-        return d.get("Caption") or d.get("ShortTitle") or self.data_dir.name
+        # Fall back to the volume folder id (DBxxx), not the inner "Data" dir.
+        return d.get("Caption") or d.get("ShortTitle") or self.data_dir.parent.name
 
     # ----------------------------------------------------------------- toc
     @staticmethod

@@ -12,6 +12,11 @@ Follow-up fixes (2026-10-27):
   fires while the backend is merely still starting. The page now distinguishes
   backend-unreachable (amber, auto-retries up to 8x, manual Retry) from
   backend-up-with-no-discs (red, actionable).
+- Volume titles: DIGIBIB.TXT is now parsed section-aware, so the real
+  `[Default]` Caption is used instead of a later section's generic
+  `Caption=Verzeichnisse`. All 76 volumes resolve to real titles (DB053 =
+  "Illustrierte Geschichte der Medizin", DB009 = "Killy Literaturlexikon", ...);
+  the fallback is the volume id, not the inner "Data" folder name.
 
 DB074 keeps figures in a 647 MB `IMAGES/images.lib` container, not loose
 BMPs: `[magic][stride-95 entries][blobs]`, three zoom levels per entry with
