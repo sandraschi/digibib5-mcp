@@ -2,6 +2,17 @@
 
 ## 0.5.0 (2026-10-26) - images.lib figures (DB074 shows pictures again)
 
+Follow-up fixes (2026-10-27):
+- Codec: inline figure-reference tokens (`BWE1349a.png$`, `BUFAMM08.png`,
+  `NNNN.bmp`) and the 1-char operand byte in the same figure-marker group are
+  stripped from decoded prose, so DB074 (Busch) chapters read as clean verse.
+  Figures stay available via node `images` metadata; DB008 text is unchanged;
+  37 tests still pass.
+- Dashboard: the red "No library detected - set DIGIBIB_ROOT" banner no longer
+  fires while the backend is merely still starting. The page now distinguishes
+  backend-unreachable (amber, auto-retries up to 8x, manual Retry) from
+  backend-up-with-no-discs (red, actionable).
+
 DB074 keeps figures in a 647 MB `IMAGES/images.lib` container, not loose
 BMPs: `[magic][stride-95 entries][blobs]`, three zoom levels per entry with
 byte-offset/size pairs (level 3 optional). `images()` / `image_bytes()` /

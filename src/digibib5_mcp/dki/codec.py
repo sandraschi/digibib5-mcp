@@ -46,6 +46,15 @@ CP = "cp1252"
 # "rororo-Hoffmann" or "Hoffmann-PW Bd. 1". Not body text - dropped.
 _RUNNING_HEAD = re.compile(r"^[A-Za-z0-9À-ſ]+-[A-Za-z0-9À-ſ]+( Bd\. \d+)?$")
 
+# An inline figure-reference token: an image filename (``BWE1349a.png$``,
+# ``BUFAMM08.png``, ``1234.bmp``), optionally with a trailing marker byte such
+# as ``$``. These are picture references, surfaced separately as node `images`
+# metadata and the reader's figure strip - they are NOT body text. In newer
+# picture-heavy discs (e.g. DB074 Busch) they are length-prefixed word tokens
+# that would otherwise litter the prose, each preceded by a 1-char operand byte
+# (the figure's marker/level) that rides in the same group.
+_IMAGE_REF = re.compile(r"(?i)^[\w.\-]+\.(?:png|bmp|jpe?g|gif)[^\w]?$")
+
 # Punctuation that attaches to the previous word (no leading space).
 _ATTACH = set(".,;:!?)]}»")
 _OPEN = set('([{\xab\x8b\x84"')
@@ -215,6 +224,27 @@ def postprocess_text(txt: str) -> str:
     return txt.strip()
 
 
+def _strip_figure_refs(tokens: list[tuple]) -> list[tuple]:
+    """Remove inline image-filename tokens (and the 1-char operand byte that
+    rides in the same figure-marker group) so picture references do not litter
+    the prose. Figures are surfaced separately as node `images` metadata.
+    """
+    word_idx = [k for k, t in enumerate(tokens) if t[0] == "word"]
+    drop: set[int] = set()
+    for wi, k in enumerate(word_idx):
+        if _IMAGE_REF.match(tokens[k][1].strip()):
+            drop.add(k)
+            # The preceding word, if a lone operand char with only ctl/br/para
+            # between it and the filename, belongs to the figure marker.
+            if wi > 0:
+                pk = word_idx[wi - 1]
+                if len(tokens[pk][1].strip()) == 1:
+                    drop.add(pk)
+    if not drop:
+        return tokens
+    return [t for idx, t in enumerate(tokens) if idx not in drop]
+
+
 def decode_record_content(content: bytes) -> str:
     """Convenience: tokenize + render a record's content region to text."""
     tokens = decode_tokens(content)
@@ -224,4 +254,5 @@ def decode_record_content(content: bytes) -> str:
             if _RUNNING_HEAD.match(t[1]):
                 tokens = tokens[idx + 1 :]
             break
+    tokens = _strip_figure_refs(tokens)
     return render_text(tokens)
