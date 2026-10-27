@@ -1,7 +1,7 @@
 {
   "$schema": "https://glama.ai/schemas/mcp.json",
   "name": "digibib5-mcp",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "FastMCP Digitale Bibliothek 5 reader: reverse-engineered DKI volumes (TOC, decoded text, FTS search, figure scans) + React/Vite reader (14114/14115).",
   "author": "Sandra Schipal",
   "license": "MIT",

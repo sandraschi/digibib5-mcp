@@ -36,9 +36,12 @@ fix:
 
 # --- Release ---
 
-# Build mcpb + NSIS installer + upload GitHub release (triple-play)
+# Build mcpb + NSIS installer + upload GitHub release (triple-play).
+# NOTE: Tauri/NSIS scaffold does not exist yet (no src-tauri/, no native/
+# build script), so releases run MCPB + GitHub only. Full triple-play unlocks
+# once the Tauri track is scaffolded and audited per TAURI_PRODUCTION_PITFALLS.
 release:
-    powershell.exe -NoProfile -File "{{justfile_directory()}}/scripts/release.ps1"
+    powershell.exe -NoProfile -File "{{justfile_directory()}}/scripts/release.ps1" -SkipNsis
 
 # Dry-run the release pipeline without building or uploading anything
 release-dry:
@@ -46,7 +49,7 @@ release-dry:
 
 # Build only the mcpb bundle into dist/
 pack:
-    powershell.exe -NoProfile -File "{{justfile_directory()}}/scripts/mcpb-pack.ps1"
+    powershell.exe -NoProfile -File "{{justfile_directory()}}/scripts/mcpb-pack.ps1" "{{justfile_directory()}}"
 
 # --- Gates ---
 

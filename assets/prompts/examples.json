@@ -1,0 +1,772 @@
+[
+  {
+    "name": "list-volumes-basic",
+    "description": "List all mounted Digitale Bibliothek volumes",
+    "prompt": "What volumes do I have?",
+    "tool": "digibib",
+    "arguments": { "operation": "list_volumes" }
+  },
+  {
+    "name": "list-volumes-after-mount",
+    "description": "Re-scan the library after mounting more discs",
+    "prompt": "I just mounted another disc, what is available now?",
+    "tool": "digibib",
+    "arguments": { "operation": "list_volumes" }
+  },
+  {
+    "name": "list-volumes-custom-root",
+    "description": "List volumes from a copied library folder",
+    "prompt": "List the volumes in D:/Books/Digibib instead of the default drive.",
+    "tool": "digibib",
+    "arguments": { "operation": "list_volumes", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "list-volumes-network-share",
+    "description": "Scan a network share for volumes",
+    "prompt": "Check what is on //NAS/library for Digitale Bibliothek volumes.",
+    "tool": "digibib",
+    "arguments": { "operation": "list_volumes", "root": "//NAS/library" }
+  },
+  {
+    "name": "list-volumes-empty-shelf",
+    "description": "Confirm an empty library root",
+    "prompt": "Is there anything at C:/Temp/empty? List volumes there.",
+    "tool": "digibib",
+    "arguments": { "operation": "list_volumes", "root": "C:/Temp/empty" }
+  },
+  {
+    "name": "descriptor-hoffmann",
+    "description": "Identity card for the Hoffmann volume",
+    "prompt": "What edition is DB008? Show me its descriptor.",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB008" }
+  },
+  {
+    "name": "descriptor-busch",
+    "description": "Identity card for the Busch volume",
+    "prompt": "Tell me about DB074 — title, publisher, version.",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB074" }
+  },
+  {
+    "name": "descriptor-unknown-volume",
+    "description": "Graceful error for a volume id that does not exist",
+    "prompt": "Show me the descriptor for DB999.",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB999" }
+  },
+  {
+    "name": "descriptor-lowercase-id",
+    "description": "Volume ids are uppercase; lowercase fails cleanly",
+    "prompt": "Descriptor for db008 (lowercase).",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "db008" }
+  },
+  {
+    "name": "descriptor-with-root",
+    "description": "Descriptor lookup against a custom library root",
+    "prompt": "What is DB008 in the D:/Books/Digibib copy?",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB008", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "descriptor-publisher-check",
+    "description": "Check who published a volume",
+    "prompt": "Who published DB074 and in which version?",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB074" }
+  },
+  {
+    "name": "descriptor-author-field",
+    "description": "Read the author field of a single-author volume",
+    "prompt": "Who is listed as the author of DB074?",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB074" }
+  },
+  {
+    "name": "descriptor-shorttitle",
+    "description": "Get the short title for citations",
+    "prompt": "What is the ShortTitle of DB008 for my bibliography?",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB008" }
+  },
+  {
+    "name": "descriptor-empty-id",
+    "description": "Empty volume id is rejected, not guessed",
+    "prompt": "Show the descriptor (no volume given).",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "" }
+  },
+  {
+    "name": "descriptor-after-list",
+    "description": "Natural follow-up: describe the first volume found",
+    "prompt": "Describe the first one.",
+    "tool": "digibib",
+    "arguments": { "operation": "descriptor", "volume_id": "DB008" }
+  },
+  {
+    "name": "toc-full-hoffmann",
+    "description": "Whole table of contents of a medium volume",
+    "prompt": "Show me the table of contents of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008" }
+  },
+  {
+    "name": "toc-top-level-only",
+    "description": "Top-level sections of a giant volume",
+    "prompt": "What are the top-level sections of DB074? Just depth zero and one.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074", "max_depth": 1 }
+  },
+  {
+    "name": "toc-two-levels",
+    "description": "Two-level outline before diving deeper",
+    "prompt": "Give me a two-level outline of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008", "max_depth": 2 }
+  },
+  {
+    "name": "toc-find-sandmann",
+    "description": "Locate a work by title inside the tree",
+    "prompt": "Where is Der Sandmann in DB008?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008" }
+  },
+  {
+    "name": "toc-find-moritz",
+    "description": "Locate Max und Moritz in the Busch volume",
+    "prompt": "Find Max und Moritz in DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074" }
+  },
+  {
+    "name": "toc-count-nodes",
+    "description": "How big is this table of contents",
+    "prompt": "How many TOC entries does DB074 have?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074", "max_depth": 0 }
+  },
+  {
+    "name": "toc-apparatus-sections",
+    "description": "Find the scholarly apparatus sections",
+    "prompt": "What secondary material (essays, bibliographies) does DB008 contain?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008", "max_depth": 2 }
+  },
+  {
+    "name": "toc-unknown-volume",
+    "description": "TOC of a missing volume fails cleanly",
+    "prompt": "Table of contents for DB999.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB999" }
+  },
+  {
+    "name": "toc-zero-depth",
+    "description": "Root only, for a volume overview",
+    "prompt": "Just the root entry of DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074", "max_depth": 0 }
+  },
+  {
+    "name": "toc-works-section",
+    "description": "Drill into the Werke part of a volume",
+    "prompt": "List everything under Werke in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008" }
+  },
+  {
+    "name": "toc-vorwort-node",
+    "description": "Find forewords across a volume",
+    "prompt": "Which Vorwort sections exist in DB074?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074" }
+  },
+  {
+    "name": "toc-with-root",
+    "description": "TOC from a custom library copy",
+    "prompt": "Table of contents of DB008 in D:/Books/Digibib.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "toc-depth-three-busch",
+    "description": "Three levels of the Busch tree",
+    "prompt": "Show DB074 down to depth 3.",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB074", "max_depth": 3 }
+  },
+  {
+    "name": "toc-nachtstuecke",
+    "description": "Contents of the Nachtstücke cycle",
+    "prompt": "What stories are inside Nachtstücke in DB008?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008", "max_depth": 5 }
+  },
+  {
+    "name": "toc-hoffmann-essays",
+    "description": "Find the monograph essays about Hoffmann",
+    "prompt": "Which essays about Hoffmann himself are in DB008?",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "DB008", "max_depth": 2 }
+  },
+  {
+    "name": "node-sandmann",
+    "description": "Read the signature chapter end to end",
+    "prompt": "Read me Der Sandmann.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 87 }
+  },
+  {
+    "name": "node-hoertext-sandmann",
+    "description": "Open the audio-book section version",
+    "prompt": "Open the Hörtext version of Der Sandmann.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 43 }
+  },
+  {
+    "name": "node-moritz",
+    "description": "Read Max und Moritz in the Busch volume",
+    "prompt": "Read Max und Moritz from DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB074", "node_index": 117 }
+  },
+  {
+    "name": "node-materialien",
+    "description": "Open the secondary-materials section",
+    "prompt": "Open Materialien zu Leben und Werk in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 1 }
+  },
+  {
+    "name": "node-vorwort-busch",
+    "description": "Read the Vorwort chapter of the Busch volume",
+    "prompt": "Read the Vorwort section at the start of DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB074", "node_index": 2 }
+  },
+  {
+    "name": "node-invalid-index",
+    "description": "Out-of-range node index fails with the valid range",
+    "prompt": "Open node 99999 of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 99999 }
+  },
+  {
+    "name": "node-negative-index",
+    "description": "Negative node index is rejected",
+    "prompt": "Open node -1.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": -1 }
+  },
+  {
+    "name": "node-missing-index",
+    "description": "node_text without an index asks for one",
+    "prompt": "Read a chapter (no node given).",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008" }
+  },
+  {
+    "name": "node-root-truncated",
+    "description": "Volume root truncates at the safety cap",
+    "prompt": "Read the whole DB008 from the root node.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 0 }
+  },
+  {
+    "name": "node-elixiere",
+    "description": "Open Die Elixiere des Teufels",
+    "prompt": "Open Die Elixiere des Teufels.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 46 }
+  },
+  {
+    "name": "node-kreisleriana",
+    "description": "Open a Kreisleriana section",
+    "prompt": "Read the Kreisleriana part in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 59 }
+  },
+  {
+    "name": "node-with-images",
+    "description": "Chapter text plus its figure references",
+    "prompt": "Open the Bilddokumente chapter and list its figures.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB074", "node_index": 41 }
+  },
+  {
+    "name": "node-unknown-volume",
+    "description": "Chapter read on a missing volume fails cleanly",
+    "prompt": "Read node 5 of DB999.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB999", "node_index": 5 }
+  },
+  {
+    "name": "node-nachtstuecke-erster-teil",
+    "description": "Open a nested cycle part",
+    "prompt": "Open Erster Teil of the Nachtstücke.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 86 }
+  },
+  {
+    "name": "node-ignaz-denner",
+    "description": "Open the story after Sandmann",
+    "prompt": "What comes right after Der Sandmann? Open it.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 88 }
+  },
+  {
+    "name": "node-string-index",
+    "description": "String node index is rejected, not coerced silently",
+    "prompt": "Open node eighty-seven.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": "87" }
+  },
+  {
+    "name": "node-with-root-override",
+    "description": "Chapter read from a copied library",
+    "prompt": "Read Der Sandmann from the D:/Books/Digibib copy.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 87, "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "node-jesuiterkirche",
+    "description": "Open a lesser-known story by node",
+    "prompt": "Open Die Jesuiterkirche in G.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 89 }
+  },
+  {
+    "name": "node-fragment-check",
+    "description": "Verify a chapter after a mapping fix",
+    "prompt": "Open node 87 of DB008 and confirm it starts with Nathanael.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 87 }
+  },
+  {
+    "name": "node-last-chapter",
+    "description": "Last chapter of a volume still decodes",
+    "prompt": "Read the final chapter of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 157 }
+  },
+  {
+    "name": "node-missing-volume-arg",
+    "description": "node_text without a volume asks for one",
+    "prompt": "Open node 5.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "node_index": 5 }
+  },
+  {
+    "name": "node-duplicate-heading",
+    "description": "Two chapters share a title; pick by index",
+    "prompt": "Open the Werke-section Der Sandmann, not the Hörtext one.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 87 }
+  },
+  {
+    "name": "record-title-page",
+    "description": "Read the very first record of a volume",
+    "prompt": "Read record 0 of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 0 }
+  },
+  {
+    "name": "record-sandmann-start",
+    "description": "Jump straight to the Sandmann opening record",
+    "prompt": "Read record 2071 of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 2071 }
+  },
+  {
+    "name": "record-denner-heading",
+    "description": "Read a chapter heading record",
+    "prompt": "Read record 2131 of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 2131 }
+  },
+  {
+    "name": "record-out-of-range",
+    "description": "Record past the end fails with the valid range",
+    "prompt": "Read record 99999 of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 99999 }
+  },
+  {
+    "name": "record-negative",
+    "description": "Negative record index is rejected",
+    "prompt": "Read record -1.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": -1 }
+  },
+  {
+    "name": "record-last",
+    "description": "Read the final record of a volume",
+    "prompt": "Read the last record of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 5973 }
+  },
+  {
+    "name": "record-moritz-heading",
+    "description": "Verify a chapter heading record in DB074",
+    "prompt": "Read record 477 of DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB074", "record_index": 477 }
+  },
+  {
+    "name": "record-missing-arg",
+    "description": "record_text without an index asks for one",
+    "prompt": "Read a record (no index given).",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008" }
+  },
+  {
+    "name": "record-with-root",
+    "description": "Raw record from a copied library",
+    "prompt": "Read record 0 of DB008 in D:/Books/Digibib.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 0, "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "record-neighbor-forward",
+    "description": "Continue reading at the next record",
+    "prompt": "Continue with the next record after 2071.",
+    "tool": "digibib",
+    "arguments": { "operation": "record_text", "volume_id": "DB008", "record_index": 2072 }
+  },
+  {
+    "name": "search-single-term",
+    "description": "Basic single-word search",
+    "prompt": "Find Nathanael in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Nathanael" }
+  },
+  {
+    "name": "search-with-limit",
+    "description": "Cap the hit list",
+    "prompt": "Find Coppelius, at most 5 hits.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Coppelius", "limit": 5 }
+  },
+  {
+    "name": "search-and",
+    "description": "Two terms must both occur",
+    "prompt": "Find passages mentioning both Sandmann and Nathanael.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Sandmann AND Nathanael" }
+  },
+  {
+    "name": "search-or",
+    "description": "Either term matches",
+    "prompt": "Find Olimpia or Clara in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Olimpia OR Clara" }
+  },
+  {
+    "name": "search-not",
+    "description": "Exclude a noisy term",
+    "prompt": "Find Kreisler without Kreisleriana.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Kreisler NOT Kreisleriana" }
+  },
+  {
+    "name": "search-phrase",
+    "description": "Exact phrase in quotes",
+    "prompt": "Find the exact phrase Der Sandmann.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "\"Der Sandmann\"" }
+  },
+  {
+    "name": "search-prefix",
+    "description": "Wildcard word family",
+    "prompt": "Find all Traum* words.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Traum*" }
+  },
+  {
+    "name": "search-umlaut-folded",
+    "description": "ASCII query finds umlaut spellings",
+    "prompt": "Find Hubner (should match Hübner).",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Hubner" }
+  },
+  {
+    "name": "search-devrient",
+    "description": "Rare name with two hits",
+    "prompt": "Find every mention of Devrient.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Devrient" }
+  },
+  {
+    "name": "search-no-hits",
+    "description": "Query with no matches",
+    "prompt": "Find smartphone in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "smartphone" }
+  },
+  {
+    "name": "search-empty-query",
+    "description": "Empty query is rejected, not run",
+    "prompt": "Search for (empty query).",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "   " }
+  },
+  {
+    "name": "search-missing-query",
+    "description": "search without a query asks for one",
+    "prompt": "Search DB008 (no query given).",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008" }
+  },
+  {
+    "name": "search-max-limit",
+    "description": "Maximum page size",
+    "prompt": "Find und in DB008, up to 100 hits.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "und", "limit": 100 }
+  },
+  {
+    "name": "search-over-limit",
+    "description": "Limit above the cap is clamped to 100",
+    "prompt": "Find der with limit 500.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "der", "limit": 500 }
+  },
+  {
+    "name": "search-busch-motif",
+    "description": "Motif search in the Busch volume",
+    "prompt": "Find Rabe (raven) in DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB074", "query": "Rabe" }
+  },
+  {
+    "name": "search-busch-phrase",
+    "description": "Quoted phrase from Max und Moritz",
+    "prompt": "Find the exact phrase Wehe wehe in DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB074", "query": "\"Wehe wehe\"" }
+  },
+  {
+    "name": "search-year",
+    "description": "Search for a publication year",
+    "prompt": "Find 1865 in DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB074", "query": "1865" }
+  },
+  {
+    "name": "search-figure-caption",
+    "description": "Figure captions are searchable text",
+    "prompt": "Find Abbildung in DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB074", "query": "Abbildung" }
+  },
+  {
+    "name": "search-apparatus-term",
+    "description": "Apparatus vocabulary search",
+    "prompt": "Find Konkordanz in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Konkordanz" }
+  },
+  {
+    "name": "search-historical-spelling",
+    "description": "Old spelling variant",
+    "prompt": "Find Thal (old spelling of Tal) in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Thal" }
+  },
+  {
+    "name": "search-complex-boolean",
+    "description": "Combined AND/OR/NOT query",
+    "prompt": "Find (Sandmann or Clara) but not Nathanael.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "(Sandmann OR Clara) NOT Nathanael" }
+  },
+  {
+    "name": "search-werkgeschichte",
+    "description": "Secondary-literature search",
+    "prompt": "Find Werkgeschichte in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Werkgeschichte" }
+  },
+  {
+    "name": "search-single-char",
+    "description": "Single-character query",
+    "prompt": "Find passages with the letter combination ab as a word.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "ab" }
+  },
+  {
+    "name": "search-quote-syntax",
+    "description": "Unbalanced quote falls back to AND terms",
+    "prompt": "Find \"unbalanced quote test in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "\"unbalanced quote test" }
+  },
+  {
+    "name": "search-with-root",
+    "description": "Search a copied library",
+    "prompt": "Find Nathanael in the D:/Books/Digibib copy of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Nathanael", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "search-unknown-volume",
+    "description": "Search on a missing volume fails cleanly",
+    "prompt": "Find anything in DB999.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB999", "query": "test" }
+  },
+  {
+    "name": "search-second-page",
+    "description": "Second page via a fresh narrow query",
+    "prompt": "Find more Coppelius hits beyond the first page.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Coppelius", "limit": 50 }
+  },
+  {
+    "name": "search-title-word",
+    "description": "Chapter titles are searchable",
+    "prompt": "Find Elixiere in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Elixiere" }
+  },
+  {
+    "name": "search-bibliography-number",
+    "description": "Bibliography item numbers are text too",
+    "prompt": "Find bibliography item i47 in DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "i47" }
+  },
+  {
+    "name": "search-limit-one",
+    "description": "Single best hit",
+    "prompt": "Give me the single best hit for Nathanael.",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "volume_id": "DB008", "query": "Nathanael", "limit": 1 }
+  },
+  {
+    "name": "images-default",
+    "description": "Figure listing at the default (largest) zoom",
+    "prompt": "List the figures of DB008.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008" }
+  },
+  {
+    "name": "images-thumbs",
+    "description": "Smallest zoom level for a gallery",
+    "prompt": "List DB008 figures at zoom level 1.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "level": 1 }
+  },
+  {
+    "name": "images-mid-zoom",
+    "description": "Middle zoom level",
+    "prompt": "List DB008 figures at zoom level 2.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "level": 2 }
+  },
+  {
+    "name": "images-invalid-level",
+    "description": "Unknown zoom level returns an empty listing",
+    "prompt": "List DB008 figures at zoom level 9.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "level": 9 }
+  },
+  {
+    "name": "images-lib-level1",
+    "description": "Thumbnails from the DB074 container",
+    "prompt": "List DB074 figures at level 1.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB074", "level": 1 }
+  },
+  {
+    "name": "images-lib-full",
+    "description": "Largest zoom from the container",
+    "prompt": "List DB074 figures at level 3.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB074", "level": 3 }
+  },
+  {
+    "name": "images-lib-default",
+    "description": "Default zoom for a container volume",
+    "prompt": "List the figures of DB074.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB074" }
+  },
+  {
+    "name": "images-no-store",
+    "description": "Volume without any image store",
+    "prompt": "List figures for a volume id that has none (DB012).",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB012" }
+  },
+  {
+    "name": "images-unknown-volume",
+    "description": "Figure listing on a missing volume",
+    "prompt": "List figures of DB999.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB999" }
+  },
+  {
+    "name": "images-with-root",
+    "description": "Figures from a copied library",
+    "prompt": "List DB008 figures from D:/Books/Digibib.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "images-level-zero",
+    "description": "Zoom level zero is rejected",
+    "prompt": "List DB008 figures at zoom level 0.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "level": 0 }
+  },
+  {
+    "name": "images-string-level",
+    "description": "Non-numeric level is rejected",
+    "prompt": "List DB008 figures at zoom level big.",
+    "tool": "digibib",
+    "arguments": { "operation": "images", "volume_id": "DB008", "level": "big" }
+  },
+  {
+    "name": "images-chapter-figures",
+    "description": "Figures referenced by a chapter (via node_text images)",
+    "prompt": "Which figures does the Bilddokumente chapter reference?",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB074", "node_index": 41 }
+  },
+  {
+    "name": "edge-missing-operation",
+    "description": "No operation defaults to the volume list",
+    "prompt": "Do the default thing.",
+    "tool": "digibib",
+    "arguments": {}
+  },
+  {
+    "name": "edge-unknown-operation",
+    "description": "Unknown operation name is rejected with the valid list",
+    "prompt": "Run the frobnicate operation.",
+    "tool": "digibib",
+    "arguments": { "operation": "frobnicate", "volume_id": "DB008" }
+  },
+  {
+    "name": "edge-empty-volume-id",
+    "description": "Empty volume id asks for a real one",
+    "prompt": "Open the TOC (no volume given).",
+    "tool": "digibib",
+    "arguments": { "operation": "toc", "volume_id": "" }
+  },
+  {
+    "name": "edge-root-without-volume",
+    "description": "Root override alone still needs a volume",
+    "prompt": "Use root D:/Books/Digibib for a search (no volume).",
+    "tool": "digibib",
+    "arguments": { "operation": "search", "query": "test", "root": "D:/Books/Digibib" }
+  },
+  {
+    "name": "edge-noninteger-node",
+    "description": "Float node index is rejected",
+    "prompt": "Open node 5.5.",
+    "tool": "digibib",
+    "arguments": { "operation": "node_text", "volume_id": "DB008", "node_index": 5.5 }
+  }
+]

@@ -46,30 +46,31 @@ $ErrorActionPreference = 'Stop'
 # ==============================================================================
 
 # HTTP port the sidecar listens on (fleet port registry)
-$Port = 10762
+$Port = 14115
 
 # Environment variable that tells the backend it is running under Tauri
-$TauriEnvVar = 'WINRARMCP_TAURI'
+$TauriEnvVar = 'DIGIBIB5_TAURI'
 
 # A real API route that returns JSON (not /health -- prove feature routes work).
 # To find candidates: Get-ChildItem src -Recurse -Filter '*.py' |
-#   Select-String '@app.get|@router.get' | Select -First 10
-$SmokeRoute = '/api/archive/list'
+#   Select-String '@app.get|@router.get|Route(' | Select -First 10
+$SmokeRoute = '/api/volumes'
 
 # mcpb source dir relative to repo root ('.' if packing from root)
 $McpbSrcDir = '.'
 
-# Path to the Tauri build script in native/
-$NativeBuildScript = 'native\build.ps1'
+# Path to the Tauri build script in native/ ('' = no Tauri scaffold yet;
+# NSIS track deferred -- release with -SkipNsis -SkipSidecar for mcpb+upload)
+$NativeBuildScript = ''
 
 # Name of the sidecar exe produced by PyInstaller in dist/
-$BackendExeName = 'winrar-mcp-backend.exe'
+$BackendExeName = 'digibib5-mcp-backend.exe'
 
 # Name of the main Tauri binary (mainBinaryName in tauri.conf.json)
-$NativeExeName = 'winrar-mcp-native.exe'
+$NativeExeName = 'digibib5-mcp-native.exe'
 
 # Path to Tauri starts shortcut update script (set to '' to skip)
-$TauriStartsScript = 'scripts\update-tauri-starts-link.ps1'
+$TauriStartsScript = ''
 
 # File containing only the latest release notes for the GitHub release body.
 # Create manually or extract from CHANGELOG.md before running release.
@@ -199,7 +200,7 @@ $orphans = Get-Process -Name $orphanNames -ErrorAction SilentlyContinue
 if ($orphans) {
     Write-Fail "Orphan processes are running: $($orphans.Name -join ', ')" `
         'These processes lock the exe files that the build needs to overwrite.' `
-        'Stop them: Stop-Process -Name winrar-mcp-backend,winrar-mcp-native -Force'
+        'Stop them: Stop-Process -Name digibib5-mcp-backend,digibib5-mcp-native -Force'
 }
 Write-Ok 'No orphan processes'
 
@@ -249,10 +250,10 @@ if (-not $SkipMcpb) {
             'Check manifest.json is valid. Run: bunx @anthropic-ai/mcpb validate manifest.json'
         Pop-Location
 
-        & $bunxExe @anthropic-ai/mcpb validate $mcpbOut
-        Assert-Exit $LASTEXITCODE 'mcpb validate' `
-            'The generated .mcpb bundle failed validation.' `
-            'Inspect the bundle: bunx @anthropic-ai/mcpb inspect dist\*.mcpb'
+        & $bunxExe @anthropic-ai/mcpb info $mcpbOut
+        Assert-Exit $LASTEXITCODE 'mcpb info' `
+            'The generated .mcpb bundle could not be read back.' `
+            'Delete dist\*.mcpb and re-run the pack phase.'
 
         $sizeMb = (Get-Item $mcpbOut).Length / 1MB
         if ($sizeMb -gt 100) {

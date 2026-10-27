@@ -25,5 +25,5 @@ if (-not (Test-Path .mcpbignore)) {
     $lines | Set-Content .mcpbignore -Encoding utf8
     Write-Host "  Generated .mcpbignore" -ForegroundColor Yellow
 }
-npx --yes @anthropic-ai/mcpb pack $RepoRoot "$RepoRoot/dist/$name-v$ver.mcpb"
+bunx --yes @anthropic-ai/mcpb pack $RepoRoot "$RepoRoot/dist/$name-v$ver.mcpb"
 Write-Host "Bundle: $RepoRoot/dist/$name-v$ver.mcpb"
