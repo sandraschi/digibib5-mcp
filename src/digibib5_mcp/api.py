@@ -585,7 +585,8 @@ routes = [
 middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=["tauri://localhost", "https://tauri.localhost"],
+        allow_origin_regex=r"https?://(?:localhost|127\.0\.0\.1)(?::\d+)?$",
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=["*"],
     )
