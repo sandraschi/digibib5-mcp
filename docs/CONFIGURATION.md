@@ -10,7 +10,7 @@ K:\Digitale Bibliothek\Bibliothek\DB008\data\TREE.DKI
 
 | Setting | Default | Override |
 |---------|---------|----------|
-| Library root | `K:\Digitale Bibliothek\Bibliothek` | `DIGIBIB_ROOT` env var, `DigibibLibrary(root=...)`, MCP `root` arg, REST `?root=` query |
+| Library root | `K:\Digitale Bibliothek\Bibliothek` | `DigibibLibrary(root=...)` / `?root=` > `data/library.json` (Settings/Onboarding) > `DIGIBIB_ROOT` env var |
 | REST backend port | `14115` | `DIGIBIB_API_PORT` env var |
 | Reader frontend port | `14114` | `web_sota/start.ps1` (Vite) |
 

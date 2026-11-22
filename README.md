@@ -13,6 +13,12 @@ newer ones (DB074, DB006) with magic-prefixed TEXT.DKI, direct TREE.DKA
 mapping, high-bit word lengths and `.xml` source markers.
 Digibib5 itself is the oracle: run it alongside to compare rendered output.
 
+## Why Digitale Bibliothek matters
+
+Directmedia's *Digitale Bibliothek* series is an extraordinary, largely forgotten scholarly resource — especially for Germanistik students, researchers, and anyone who wants fast offline access to the German literary and philosophical canon (*Killy Literaturlexikon*, *Wilpert*, *Deutsche Literatur von Luther bis Tucholsky*, *Deutsche Literatur im Mittelalter*, Goethe, Lessing, Heine, Hoffmann, Kant, Nietzsche, Adorno) alongside wonderful curiosities like *Merkwürdige Literatur* (`DB111`) and *Das digitale Handbuch des nutzlosen Wissens* (`DBSO06`). Volumes such as *English and American Literature from Shakespeare to Mark Twain* (`DB059`) and *Shakespeare: Complete Works* (`DB061`) are icing on the cake.
+
+`digibib5-mcp` brings these classic CD-ROMs back to life for modern readers and the (planned) [mediacraft](docs/MEDIACRAFT.md) ecosystem.
+
 ## Documentation
 
 | Doc | What |
@@ -22,6 +28,8 @@ Digibib5 itself is the oracle: run it alongside to compare rendered output.
 | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | env vars, ports, per-volume file layout |
 | [docs/TOOLS.md](docs/TOOLS.md) | MCP ops, REST endpoints, Python library |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | repo layout, gates, codec map, release |
+| [docs/PRD.md](docs/PRD.md) | product requirements, scope, status |
+| [docs/MEDIACRAFT.md](docs/MEDIACRAFT.md) | preliminary notes on the planned mediacraft integration |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | symptoms and fixes |
 
 ## Status

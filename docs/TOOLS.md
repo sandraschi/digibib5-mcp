@@ -11,11 +11,12 @@ override `DIGIBIB_ROOT`.
 | `operation` | Args | Returns |
 |-------------|------|---------|
 | `list_volumes` | - | `{volumes: [{id, title}], count}` |
+| `stats` | - | `{root, root_exists, volumes, indexed_volumes, index_bytes}` |
 | `descriptor` | `volume_id` | `{title, descriptor}` (DIGIBIB.TXT keys) |
 | `toc` | `volume_id`, `max_depth?` | nested `{index, title, depth, record, children?}` forest + `node_count`, `record_count` |
 | `node_text` | `volume_id`, `node_index` | full chapter extent: `{title, record, record_end, records_total, truncated, text}` |
 | `record_text` | `volume_id`, `record_index` | single raw record: `{text}` |
-| `search` | `volume_id`, `query`, `limit?` | FTS5 hits: `[{record, node_index, chapter, snippet}]` |
+| `search` | `query`, `volume_id?`, `limit?` | FTS5 hits (single volume or all indexed volumes when `volume_id` omitted) |
 | `images` | `volume_id`, `level?` | figures: `{levels, level, images: [{name, width, height, bpp, bytes, level, url}]}` |
 
 `node_text` concatenates every record from the node's start record up to the
@@ -32,15 +33,19 @@ figures at a zoom level (default: highest); binary bytes come from the
 | Method | Path | Notes |
 |--------|------|-------|
 | GET | `/api/health` | `{root, root_exists}` |
+| GET | `/api/catalog` | curated CD-ROM catalog merged with installed status |
 | GET | `/api/volumes` | volume list |
 | GET | `/api/volume/{vid}/descriptor` | |
 | GET | `/api/volume/{vid}/toc?max_depth=` | |
 | GET | `/api/volume/{vid}/node/{idx}/text` | chapter extent + metadata |
-| GET | `/api/volume/{vid)/record/{idx}/text` | single record |
+| GET | `/api/volume/{vid}/record/{idx}/text` | single record |
 | GET | `/api/volume/{vid}/search?q=&limit=` | FTS5 hits: `{query, count, results}` |
+| GET | `/api/search?q=&limit=` | cross-volume FTS5 hits across indexed volumes |
 | GET | `/api/volume/{vid}/images?level=` | figures: `{levels, level, count, images}` |
 | GET | `/api/volume/{vid}/image/{level}/{name}` | raw BMP bytes (`image/bmp`) |
-| GET | `/api/stats` | `{volumes, total_records, total_figures, index_bytes}` |
+| GET | `/api/stats` | `{volumes, total_records, total_figures, index_bytes, computing}` |
+| GET/POST | `/api/settings/library` | persistent library root (`data/library.json`) + `onboarded` flag |
+| POST | `/api/settings/library/test` `{root}` | validate a candidate library root without saving |
 | GET | `/api/logs?limit=` | ring-buffer log entries |
 | GET | `/api/tools` | live tool schemas derived from the `digibib` function |
 | GET | `/api/tools/{op}` | one operation's schema |
