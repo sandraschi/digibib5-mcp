@@ -131,19 +131,6 @@ def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
     i, n = 0, len(buf)
     while i < n:
         b = buf[i]
-        # 0x8B/0x9B: transparent literal-group markers. Decode any printable
-        # run inside as literal text (italic/literal words, spaced punctuation);
-        # bare markers vanish.
-        if b == 0x8B or b == 0x9B:
-            j = i + 1
-            while j < n and (32 <= buf[j] < 127 or buf[j] >= 160):
-                j += 1
-            if j > i + 1:
-                lit = buf[i + 1 : j].decode(encoding, "replace")
-                if lit.strip():
-                    out.append(("word", lit))
-            i = j if j > i + 1 else i + 1
-            continue
         if b == 0x15:
             # Paragraph marker: the break run that always follows is part of it.
             out.append(("para",))
@@ -152,7 +139,8 @@ def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
                 i += 1
             continue
         # Length with optional 0x80 high bit (newer discs set it on most words:
-        # 0x83was, 0x87Kindern, ...). Masked length, same printable check.
+        # 0x83was, 0x87Kindern, 0x8B = len 11, 0x9B = len 27). Try word decode
+        # before 0x8B/0x9B literal-group fallback so 11/27-byte words aren't hijacked.
         lb = (b & 0x3F) if 0x80 <= b <= 0xBF else b
         if 1 <= lb <= 63 and i + 1 + lb <= n:
             chunk = buf[i + 1 : i + 1 + lb]
@@ -181,6 +169,17 @@ def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
                 out.append(("word", "-"))
                 i += 1
                 continue
+        # 0x8B/0x9B: transparent literal-group markers when not a valid 11/27-byte word.
+        if b == 0x8B or b == 0x9B:
+            j = i + 1
+            while j < n and (32 <= buf[j] < 127 or buf[j] >= 160):
+                j += 1
+            if j > i + 1:
+                lit = buf[i + 1 : j].decode(encoding, "replace")
+                if lit.strip():
+                    out.append(("word", lit))
+            i = j if j > i + 1 else i + 1
+            continue
         if b == 0x02:
             # 0x02 doubles as the length of 2-letter words ("E.") - but those
             # parsed above (printable chunk). A bare 0x02 starts a break run:
