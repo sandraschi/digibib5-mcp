@@ -18,6 +18,7 @@ import json
 import logging
 import os
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -62,9 +63,16 @@ class _RingHandler(logging.Handler):
 
 
 def _ensure_log_handler() -> None:
+    handler = _RingHandler()
     root = logging.getLogger()
-    if not any(isinstance(h, _RingHandler) for h in root.handlers):
-        root.addHandler(_RingHandler())
+    if root.level == logging.NOTSET or root.level > logging.INFO:
+        root.setLevel(logging.INFO)
+    for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access"):
+        lg = logging.getLogger(name)
+        if not any(isinstance(h, _RingHandler) for h in lg.handlers):
+            lg.addHandler(handler)
+    if not LOG_BUFFER:
+        logging.getLogger("digibib5_mcp.api").info("digibib5-mcp API log buffer initialized")
 
 
 _ensure_log_handler()
@@ -805,7 +813,13 @@ middleware = [
     )
 ]
 
-app = Starlette(routes=routes, middleware=middleware)
+@asynccontextmanager
+async def _lifespan(_app: Starlette) -> AsyncIterator[None]:
+    _ensure_log_handler()
+    yield
+
+
+app = Starlette(routes=routes, middleware=middleware, lifespan=_lifespan)
 
 
 def main() -> None:

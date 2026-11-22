@@ -95,6 +95,36 @@ _LEAD_SPLIT = set('\xab\x8b\x84"')
 _INLINE_PUNCT = b".,;:!?)('\xbb\xab-/\x95"
 
 
+def _decode_chunk(chunk: bytes, encoding: str) -> str | None:
+    """Decode a word chunk, supporting 0x05 <b2> Cyrillic escapes (DB006).
+
+    Returns None if the chunk contains invalid control bytes (not a real word).
+    """
+    if not chunk:
+        return None
+    if all(32 <= c < 127 or c >= 160 for c in chunk):
+        return chunk.decode(encoding, "replace")
+    if "8859-5" not in encoding.lower() or 0x05 not in chunk:
+        return None
+    out: list[str] = []
+    k = 0
+    m = len(chunk)
+    while k < m:
+        c = chunk[k]
+        if c == 0x05 and k + 1 < m:
+            mapped = chunk[k + 1] + 0x9A
+            if not 0xA0 <= mapped <= 0xFF:
+                return None
+            out.append(bytes([mapped]).decode("iso-8859-5", "replace"))
+            k += 2
+        elif 32 <= c < 127 or c >= 160:
+            out.append(bytes([c]).decode(encoding, "replace"))
+            k += 1
+        else:
+            return None
+    return "".join(out)
+
+
 def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
     """Tokenize a record's content region into word / br / para / ctl tokens."""
     out: list[tuple] = []
@@ -126,17 +156,16 @@ def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
         lb = (b & 0x3F) if 0x80 <= b <= 0xBF else b
         if 1 <= lb <= 63 and i + 1 + lb <= n:
             chunk = buf[i + 1 : i + 1 + lb]
-            # Printable CP1252 only. Allowing 9..31 (as a first pass did) let
-            # formatting opcodes 0x09/0x0b/0x0c/0x0e-0x12 masquerade as 1-char
-            # words and leak into the text as control glyphs. A real word is
-            # ASCII-printable or high-CP1252 (>=160).
-            if chunk and all(32 <= c < 127 or c >= 160 for c in chunk):
+            # Printable bytes (or 0x05-escaped Cyrillic in DB006). Rejecting
+            # 9..31 keeps formatting opcodes from masquerading as 1-char words.
+            decoded_chunk = _decode_chunk(chunk, encoding)
+            if decoded_chunk is not None:
                 j = i + 1 + lb
                 punct = bytearray()
                 while j < n and buf[j] in _INLINE_PUNCT:
                     punct.append(buf[j])
                     j += 1
-                word = bytes(chunk + bytes(punct)).decode(encoding, "replace")
+                word = decoded_chunk + bytes(punct).decode(encoding, "replace")
                 # Split glued opening quotes ("«Meister" -> "«" + "Meister").
                 while len(word) > 1 and word[0] in _LEAD_SPLIT:
                     out.append(("word", word[0]))
