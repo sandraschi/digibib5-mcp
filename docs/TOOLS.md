@@ -20,7 +20,7 @@ override `DIGIBIB_ROOT`.
 | `images` | `volume_id`, `level?` | figures: `{levels, level, images: [{name, width, height, bpp, bytes, level, url}]}` |
 
 `node_text` concatenates every record from the node's start record up to the
-next non-descendant node (capped at 100 records / 300k chars, `truncated: true`
+next non-descendant node (capped at 2000 records / 2M chars, `truncated: true`
 when capped). Extent metadata is half-open `[record, record_end)`. `search`
 queries decoded text with FTS5 syntax (words, `AND`/`OR`/`NOT`, `"phrase"`,
 `prefix*`); snippets mark matches with `«»`. First search per volume builds
@@ -82,7 +82,7 @@ vol.toc_tree()  # nested forest
 vol.record_count
 vol.record_text(i)  # decoded single record
 vol.node_extent(i)  # (start, end) half-open record range
-vol.node_text(i, max_records=100)  # decoded chapter
+vol.node_text(i, max_records=2000)  # decoded chapter
 vol.node_for_record(r)  # deepest TocNode containing record r
 vol.search("Nathanael", limit=20)  # [{record, node_index, chapter, snippet}]
 vol.image_levels()  # e.g. [1, 2, 3, 4]
@@ -92,5 +92,5 @@ vol.node_image_refs(i)  # figure names referenced by chapter i
 ```
 
 `TocNode.record` is the chapter's start record from `TREE.DKA` (`None` when
-the volume has no `.DKA`, e.g. DB012). `MAX_NODE_RECORDS = 100`,
-`MAX_NODE_CHARS = 300_000`.
+the volume has no `.DKA`, e.g. DB012). `MAX_NODE_RECORDS = 2000`,
+`MAX_NODE_CHARS = 2_000_000`.

@@ -1,10 +1,31 @@
 # digibib5-mcp - latest changes
 
-## 0.5.1 (2026-11-22) - page-break text cleanup (codec v3)
+## 0.5.1 (2026-11-22) - page-break text cleanup, Cyrillic DB006, catalog & onboarding
 
-Polishing the decoded text so chapters read clean across the fleet, not just
-DB008. Verified on DB008 (prose, unchanged), DB074 (verse), DB030 (antique)
-and DB075 (115k-record Lyrik). 40 tests pass.
+Polishing the decoded text across the fleet (including Cyrillic `DB006`) and
+bringing the reader webapp + REST/MCP surface up to full parity:
+
+- **DB006 Cyrillic decoding:** `DIGIBIB.TXT` and `TREE.DKI` decode as `cp1251`
+  when a Cyrillic `encoding=` is declared, while `TEXT.DKI` decodes `ISO-8859-5`
+  including `0x05 <b2>` 2-byte Cyrillic word escapes. Fixed `0x8B`/`0x9B`
+  literal-group check hijacking 11-byte and 27-byte words before word-length
+  decoding.
+- **Reader & limits:** Raised `MAX_NODE_RECORDS` from `100` to `2000`
+  (`MAX_NODE_CHARS = 2_000_000`), added **Continue at record #…** on truncated
+  chapters, **← Prev / Next record →** buttons, **Info** (`DIGIBIB.TXT`
+  metadata) & **Figures** gallery in `ReaderPage`, and cross-volume search
+  (`GET /api/search`, optional `volume_id` on MCP `digibib(operation="search")`).
+- **Catalog & onboarding:** Added curated 76-volume `catalog.json`, `GET /api/catalog`,
+  `/catalog` page, first-time `LibraryOnboardingModal`, and persistent/testable
+  Library Root settings (`data/library.json`, `GET/POST /api/settings/library`,
+  `POST /api/settings/library/test`).
+- **Backend & launcher:** Made `/api/stats` non-blocking (`asyncio.to_thread` +
+  cache), fixed `/api/tools/{name}` integer schema/coercion, attached `_RingHandler`
+  to Uvicorn loggers on startup so `/api/logs` populates live, added
+  `mcp-central-docs/starts/digibib5-mcp-start.bat`, and made `web_sota/start.ps1`
+  open the browser once Vite is listening.
+
+### Codec v3 (DB008, DB074, DB030, DB075)
 
 - Source-path markers: the `_MARKER` regex now matches every disc's prefix
   (`#`, `\x0e:`, `\x0e#`, `\x0e2` on DB075, `\x0e-` on DB030) and paths with

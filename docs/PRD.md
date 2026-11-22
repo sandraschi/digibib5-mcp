@@ -21,7 +21,7 @@ The original 32-bit Windows Digibib5 viewer is aging and isolated from modern wo
 ## 3. Scope & Non-Goals
 
 ### In Scope
-- Zero-dependency (no original Digibib5 binary required) `.DKI` volume discovery, `DIGIBIB.TXT` descriptor parsing, `TREE.DKI` + `TREE.DKA` TOC-to-record mapping, and v3 text decoding.
+- Zero-dependency (no original Digibib5 binary required) `.DKI` volume discovery, `DIGIBIB.TXT` descriptor parsing, `TREE.DKI` + `TREE.DKA` TOC-to-record mapping, and v3 text decoding (including Cyrillic `DB006` `cp1251`/`ISO-8859-5` support and 2,000-record chapter views).
 - Per-volume and cross-volume SQLite FTS5 full-text search (`data/search.db`).
 - Embedded figure extraction (loose `IMAGES/1..4/*.BMP` and `IMAGES/images.lib` containers).
 - Single `digibib` MCP portmanteau tool (`list_volumes`, `stats`, `descriptor`, `toc`, `node_text`, `record_text`, `search`, `images`).
