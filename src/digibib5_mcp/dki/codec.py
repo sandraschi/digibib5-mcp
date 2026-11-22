@@ -29,11 +29,16 @@ word tokens and control opcodes:
   kept as a "-" word. Words ending in "-" hyphenated across a break are
   re-joined in rendering (``Hoff-\\nmanns`` -> ``Hoffmanns``).
 
-STATUS: v2. Paragraph structure, running-head removal, de-hyphenation and
-literal spans are mapped from DB003/004/005/007/008 evidence. Open: exact
-meaning of 0x0E block markers, 0x0C block ends, lone 0x84/0x94/0xAB/0xBB bytes
-(0x94 verified as a 0x0F operand - left dropped), heading levels, italics.
-Output is flowing text, not yet byte-faithful HTML.
+STATUS: v3. Paragraph structure, running-head removal, de-hyphenation and
+literal spans are mapped from DB003/004/005/007/008 evidence. v3 also strips
+the stray structural glyphs that heading / paragraph-separator opcodes leave
+behind (lone symbol-block chars ``¶ ª ¯ °`` and accented-capital markers), the
+record/heading-type operand code that leaked as a spurious leading letter
+(``a Zwey Stücke`` -> ``Zwey Stücke``), and - across DB030/DB075 - a wider set
+of source-path markers (see volume.py ``_MARKER``). Open: heading LEVELS
+(h1/h2) and italics are dropped not styled, and verse line breaks reflow to
+spaces like prose (single 0x02 is ambiguous). Output is flowing text, not yet
+byte-faithful HTML.
 """
 
 from __future__ import annotations
@@ -54,6 +59,31 @@ _RUNNING_HEAD = re.compile(r"^[A-Za-z0-9À-ſ]+-[A-Za-z0-9À-ſ]+( Bd\. \d+)?$")
 # that would otherwise litter the prose, each preceded by a 1-char operand byte
 # (the figure's marker/level) that rides in the same group.
 _IMAGE_REF = re.compile(r"(?i)^[\w.\-]+\.(?:png|bmp|jpe?g|gif)[^\w]?$")
+
+# Stray structural glyphs: heading opcodes and paragraph/section separators
+# (0xA6 ¦, 0xA8 ¨, 0xAA ª, 0xAF ¯, 0xB0 °, 0xB2 ², 0xB6 ¶, ...) that decode
+# grabs as a tiny 1-2 char word - "¶", "ª", or "¯u" where the 2nd char is a
+# 1-byte operand. A lone char in the Latin-1 symbol block (0xA0-0xBF) or the
+# C1 range (0x80-0x9F) is never real German body text. Guillemets («» 0xAB/
+# 0xBB) and the bullet (• 0x2022) are real and kept; letters, digits and
+# ordinary punctuation (never in these ranges) are untouched.
+# Symbol-block chars that ARE legitimate standalone content and must survive:
+# guillemets, bullet, section sign, copyright, and the vulgar fractions.
+_GLYPH_KEEP = {
+    "«",
+    "»",
+    "•",
+    "§",
+    "©",  # « » • § ©
+    "¼",
+    "½",
+    "¾",  # ¼ ½ ¾
+}
+
+
+def _is_sym(c: str) -> bool:
+    return 0x80 <= ord(c) <= 0xBF and c not in _GLYPH_KEEP
+
 
 # Punctuation that attaches to the previous word (no leading space).
 _ATTACH = set(".,;:!?)]}»")
@@ -159,6 +189,17 @@ def _is_head_word(tokens: list[tuple], i: int) -> bool:
     return 0x13 in _ctl_window(tokens, i, -1)
 
 
+def _is_header_code(tokens: list[tuple], i: int) -> bool:
+    """A lone single-character word that is a record/heading-type operand code,
+    not body text. It sits in the record header as ``01 <char> 00`` and is
+    always immediately followed by the 0xAF heading opcode (e.g. the spurious
+    "a" in "a Zwey Stücke", "B" in "B stets als Werk")."""
+    w = tokens[i][1].strip()
+    if len(w) != 1 or not w.isalnum():
+        return False
+    return 0xAF in _ctl_window(tokens, i, +1, limit=4)
+
+
 def _is_para_break(tokens: list[tuple], i: int) -> bool:
     """A single soft break that is really a paragraph boundary: led by the
     0x15 paragraph marker, or followed by the 04 paragraph-start sequence."""
@@ -179,7 +220,7 @@ def render_text(tokens: list[tuple]) -> str:
     prev_word: str | None = None
     for i, t in enumerate(tokens):
         if t[0] == "word":
-            if _is_head_word(tokens, i):
+            if _is_head_word(tokens, i) or _is_header_code(tokens, i):
                 continue
             w = t[1]
             if s and not s[-1].endswith(("\n", " ")):
@@ -245,6 +286,30 @@ def _strip_figure_refs(tokens: list[tuple]) -> list[tuple]:
     return [t for idx, t in enumerate(tokens) if idx not in drop]
 
 
+def _strip_head_marks(tokens: list[tuple]) -> list[tuple]:
+    """Drop stray structural glyphs that heading / paragraph-separator opcodes
+    leave as a tiny word: a lone symbol-block char (``¶``, ``ª``, ``¯``, ``°``)
+    or a lone accented capital used as a separator (``Â``, ``Ë``), and the
+    marker-plus-1-char-operand form (``¯u``).
+
+    The lone case also drops accented capitals (0xC0-0xDE), which are never a
+    one-character German word; the 2-char operand case is restricted to the
+    symbol block so real two-letter words like "Öl" or "Äh" are untouched.
+    """
+    out: list[tuple] = []
+    for t in tokens:
+        if t[0] == "word":
+            w = t[1].strip()
+            if w:
+                c0 = ord(w[0])
+                lone = len(w) == 1 and (_is_sym(w[0]) or (0xC0 <= c0 <= 0xDE and c0 != 0xD7))
+                operand = len(w) == 2 and _is_sym(w[0]) and w[1].isalnum()
+                if lone or operand:
+                    continue
+        out.append(t)
+    return out
+
+
 def decode_record_content(content: bytes) -> str:
     """Convenience: tokenize + render a record's content region to text."""
     tokens = decode_tokens(content)
@@ -255,4 +320,5 @@ def decode_record_content(content: bytes) -> str:
                 tokens = tokens[idx + 1 :]
             break
     tokens = _strip_figure_refs(tokens)
+    tokens = _strip_head_marks(tokens)
     return render_text(tokens)

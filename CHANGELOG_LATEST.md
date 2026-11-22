@@ -1,5 +1,30 @@
 # digibib5-mcp - latest changes
 
+## 0.5.1 (2026-11-22) - page-break text cleanup (codec v3)
+
+Polishing the decoded text so chapters read clean across the fleet, not just
+DB008. Verified on DB008 (prose, unchanged), DB074 (verse), DB030 (antique)
+and DB075 (115k-record Lyrik). 40 tests pass.
+
+- Source-path markers: the `_MARKER` regex now matches every disc's prefix
+  (`#`, `\x0e:`, `\x0e#`, `\x0e2` on DB075, `\x0e-` on DB030) and paths with
+  spaces. Previously DB075 section intros leaked
+  `2q:\digibib in arbeit\...\aaaa0001.` and DB030 leaked its own path.
+- Stray structural glyphs: lone symbol-block chars (`¶ ª ¯ °`) and
+  accented-capital separators that heading/paragraph opcodes left behind are
+  dropped. Guillemets `«»`, the section sign `§`, `©` and the vulgar fractions
+  `¼ ½ ¾` are kept; two-letter words like `Öl` are untouched.
+- Leading header-code letter: the record/heading-type operand that leaked as a
+  spurious first letter is gone (`a Zwey Stücke` -> `Zwey Stücke`,
+  `s Uber die Worte` -> `Uber die Worte`).
+- Binary root node: `_looks_textual` no longer mistakes accented-byte binary
+  (cover/font preamble) for prose, so a volume's root node shows its real title
+  page instead of `K: â Ë Ê ³ ® ä ...` (DB075).
+
+Still open (deferred): heading LEVELS and italics are dropped not styled, and
+verse line breaks reflow to spaces (a single 0x02 is ambiguous between a print
+wrap and a verse line).
+
 ## 0.5.0 (2026-10-26/27) - images.lib figures (DB074 shows pictures again)
 
 DB074 keeps figures in a 647 MB `IMAGES/images.lib` container, not loose

@@ -297,6 +297,45 @@ def test_content_region_leading_and_trailing():
     assert decode_record_content(region) == "Werke"
 
 
+def test_content_region_marker_prefix_variants():
+    # The source-path marker's type byte varies by disc: '#' (DB008), '\x0e:'
+    # /'\x0e#' (DB074), '\x0e2' (DB075), '\x0e-' (DB030). Paths carry spaces and
+    # dashes. All must be stripped, not decoded into the text.
+    body = b"\x05Werke\x00"
+    db75 = body + b"\x0e2q:\\digibib in arbeit\\db75 lyrik\\texte\\aaaa0001.xml\x03"
+    region = DigibibVolume._content_region(db75)
+    assert b"q:" not in region
+    assert decode_record_content(region) == "Werke"
+    db30 = body + b"\x0e-q:\\digibib\\db30\\texte 3 - fertig\\ghesiod.txt\x03"
+    region = DigibibVolume._content_region(db30)
+    assert b"q:" not in region
+    assert decode_record_content(region) == "Werke"
+
+
+def test_stray_glyph_strip():
+    # Lone symbol-block / separator glyphs (¶ ª) and accented-capital markers
+    # (Â) are structural, never body text - dropped.
+    assert decode_record_content(b"\x01\xb6\x00\x05Hallo\x00") == "Hallo"  # ¶
+    assert decode_record_content(b"\x01\xaa\x00\x05Hallo\x00") == "Hallo"  # ª
+    assert decode_record_content(b"\x01\xc2\x00\x05Hallo\x00") == "Hallo"  # Â
+    # Marker plus a 1-char operand ("¯u") is dropped whole.
+    assert decode_record_content(b"\x02\xafu\x00\x05Hallo\x00") == "Hallo"  # ¯u
+    # Guillemets, section sign and vulgar fractions ARE content - kept.
+    assert "\u00bd" in decode_record_content(b"\x01\xbd\x00\x05Hallo\x00")  # ½
+    assert "\u00a7" in decode_record_content(b"\x02\xa75\x00\x05Hallo\x00")  # §5
+    # A real two-letter word starting with an accented capital survives ("Öl").
+    assert decode_record_content(b"\x02\xd6l\x00\x05Hallo\x00") == "Öl Hallo"
+
+
+def test_leading_header_code_dropped():
+    # A record-header "01 <letter> 00" field before the 0xAF heading opcode is a
+    # type/level code, not body text ("a Zwey Stücke" -> "Zwey Stücke").
+    rec = b"\x01a\x00\xaf\x03\x00\x00\x00\x04Zwey\x00"
+    assert decode_record_content(rec) == "Zwey"
+    # A single letter NOT followed by the 0xAF opcode is left alone (real text).
+    assert decode_record_content(b"\x01A\x00\x03und\x00\x01B\x00") == "A und B"
+
+
 def _have_discs() -> bool:
     try:
         return len(DigibibLibrary().list_volumes()) > 0

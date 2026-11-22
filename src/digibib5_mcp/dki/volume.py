@@ -61,7 +61,7 @@ def parse_bmp_info(data: bytes) -> dict | None:
 
 # Source-path marker in TEXT.DKI records: ``#q:\...\hoff-200.txt`` (DB008)
 # or ``\x0e:q:\...\wbw-0000.xml`` (DB074, no hash, spaces in the path).
-_MARKER = re.compile(rb"(?:\x0e:|\x0e#|#)q:(?:[^\\:\x00-\x1f]*\\)+[^\\:\x00-\x1f:]*\.[A-Za-z0-9]{2,4}(?![A-Za-z0-9])")
+_MARKER = re.compile(rb"(?:\x0e.|#)?q:(?:\\[^\\:\x00-\x1f]*)+\.[A-Za-z0-9]{2,4}(?![A-Za-z0-9])")
 # A marker counts as the LEADING (header) marker only this close to the record start.
 _HEADER_ZONE = 128
 
@@ -179,11 +179,20 @@ class DigibibVolume:
 
     @staticmethod
     def _looks_textual(text: str) -> bool:
-        """Heuristic: decoded record holds prose, not binary preamble junk."""
+        """Heuristic: decoded record holds prose, not binary preamble junk.
+
+        Letter ratio alone is fooled by accented-byte binary (cover/font data
+        decodes as "K: â Ë Ê ³ ® ä ..." - plenty of isalpha chars, but almost
+        no real words). Real prose also sits in runs of >= 4 letters, so
+        require a good fraction of the text to be inside such runs.
+        """
         if len(text) < 20:
             return False
         letters = sum(1 for c in text if c.isalpha())
-        return letters / len(text) > 0.4
+        if letters / len(text) <= 0.4:
+            return False
+        long_runs = sum(len(m) for m in re.findall(r"[^\W\d_]{4,}", text))
+        return long_runs / len(text) > 0.3
 
     def _first_readable(self, start: int, cnt: int) -> int:
         """First record at/after ``start`` that decodes to prose (root span)."""
