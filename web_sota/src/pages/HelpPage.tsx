@@ -152,6 +152,23 @@ export function HelpPage() {
 						snippets, and the embedded figures — in a reader webapp, over REST,
 						and over MCP for AI clients.
 					</p>
+					<div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-zinc-300">
+						<p className="font-medium text-amber-300">
+							Why Digitale Bibliothek matters
+						</p>
+						<p className="mt-1 text-zinc-400">
+							A remarkable, often overlooked resource for Germanistik students,
+							scholars, and anyone who wants fast offline access to the German
+							canon (Killy, Wilpert, Luther bis Tucholsky, Goethe, Hoffmann,
+							Kant, Nietzsche, Adorno) plus rare curiosities like{" "}
+							<em>Merkwürdige Literatur</em> (DB111) — with{" "}
+							<em>English and American Literature</em> (DB059) and{" "}
+							<em>Shakespeare</em> (DB061) as icing on the cake. Built for
+							modern reading and the (planned) <strong>mediacraft</strong>{" "}
+							ecosystem (see <code className="font-mono">docs/MEDIACRAFT.md</code>
+							).
+						</p>
+					</div>
 					<ul className="list-disc space-y-1 pl-5 text-zinc-400">
 						<li>
 							Reader UI on port 14114 (this page), REST backend on 14115
@@ -162,9 +179,10 @@ export function HelpPage() {
 							<code className="font-mono">digibib</code> portmanteau tool.
 						</li>
 						<li>
-							Pages: Dashboard (library KPIs), Reader (tree + search + figures),
-							Tools (live op harness), Chat (local/cloud LLM), Settings (backend
-							+ AI), Logs (ring buffer), Help (this page).
+							Pages: Dashboard (library KPIs), Catalog (all CD-ROM descriptions),
+							Reader (tree + search + figures), Tools (live op harness), Chat
+							(local/cloud LLM), Settings (library root + AI), Logs (ring
+							buffer), Help (this page).
 						</li>
 					</ul>
 				</div>

@@ -14,12 +14,18 @@ import {
 	BookOpen,
 	Database,
 	FileText,
+	FolderCog,
 	Image as ImageIcon,
 	RefreshCw,
 	Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LibraryOnboardingModal } from "@/components/LibraryOnboardingModal";
+import {
+	fetchLibrarySettings,
+	type LibrarySettings,
+} from "@/lib/librarySettings";
 import { isOnboardedLibrary, MOCK_KPIS } from "@/lib/mockOnboarding";
 
 interface Stats {
@@ -27,6 +33,7 @@ interface Stats {
 	total_records: number;
 	total_figures: number;
 	index_bytes: number;
+	computing?: boolean;
 }
 
 interface Volume {
@@ -54,25 +61,57 @@ export function Dashboard() {
 	const [rootExists, setRootExists] = useState(true);
 	const [status, setStatus] = useState<Status>("loading");
 	const [reloadKey, setReloadKey] = useState(0);
+	const [onboardingCfg, setOnboardingCfg] = useState<LibrarySettings | null>(
+		null,
+	);
+
+	async function openOnboarding() {
+		try {
+			const cfg = await fetchLibrarySettings();
+			setOnboardingCfg(cfg);
+		} catch {
+			setOnboardingCfg({
+				success: true,
+				root: root || "K:\\Digitale Bibliothek\\Bibliothek",
+				root_exists: rootExists,
+				volume_count: volumes.length,
+				source: "default",
+				onboarded: true,
+			});
+		}
+	}
 
 	useEffect(() => {
 		let cancelled = false;
 		let attempts = 0;
 		let timer: ReturnType<typeof setTimeout> | undefined;
+		let statsTimer: ReturnType<typeof setTimeout> | undefined;
+
+		const loadStats = async () => {
+			try {
+				const s = (await fetch("/api/stats").then((r) => r.json())) as Stats;
+				if (cancelled) return;
+				setStats(s);
+				if (s.computing) {
+					statsTimer = setTimeout(loadStats, 2000);
+				}
+			} catch {
+				/* stats are non-critical for volume list */
+			}
+		};
 
 		const load = async () => {
 			try {
-				const [s, v, h] = await Promise.all([
-					fetch("/api/stats").then((r) => r.json()),
+				const [v, h] = await Promise.all([
 					fetch("/api/volumes").then((r) => r.json()),
 					fetch("/api/health").then((r) => r.json()),
 				]);
 				if (cancelled) return;
-				setStats(s);
 				setVolumes(v.volumes ?? []);
 				setRoot(h.root ?? "");
 				setRootExists(Boolean(h.root_exists));
 				setStatus("ready");
+				loadStats();
 			} catch {
 				if (cancelled) return;
 				// Backend not reachable (not yet started, proxy blip). This is NOT
@@ -88,6 +127,7 @@ export function Dashboard() {
 		return () => {
 			cancelled = true;
 			if (timer) clearTimeout(timer);
+			if (statsTimer) clearTimeout(statsTimer);
 		};
 	}, [reloadKey]);
 
@@ -95,9 +135,9 @@ export function Dashboard() {
 	const mockActive = !hasLibrary;
 	const kpis = hasLibrary
 		? {
-				volumes: stats?.volumes ?? 0,
-				records: stats?.total_records ?? 0,
-				figures: stats?.total_figures ?? 0,
+				volumes: stats?.volumes ?? volumes.length,
+				records: stats?.computing ? "…" : (stats?.total_records ?? 0),
+				figures: stats?.computing ? "…" : (stats?.total_figures ?? 0),
 				index: stats ? formatMB(stats.index_bytes) : "0.0",
 			}
 		: {
@@ -109,6 +149,16 @@ export function Dashboard() {
 
 	return (
 		<div data-testid="dashboard" className="mx-auto max-w-6xl space-y-6">
+			{onboardingCfg && (
+				<LibraryOnboardingModal
+					initial={onboardingCfg}
+					onDone={() => {
+						setOnboardingCfg(null);
+						setReloadKey((k) => k + 1);
+					}}
+					onClose={() => setOnboardingCfg(null)}
+				/>
+			)}
 			{/* Hero */}
 			<div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
 				<div className="flex flex-wrap items-center justify-between gap-4">
@@ -121,12 +171,22 @@ export function Dashboard() {
 							full text, view the figures — from your own CD-ROMs.
 						</p>
 					</div>
-					<Link
-						to="/reader"
-						className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500"
-					>
-						<BookOpen className="h-4 w-4" /> Open reader
-					</Link>
+					<div className="flex flex-wrap items-center gap-2">
+						<button
+							type="button"
+							onClick={openOnboarding}
+							data-testid="rerun-onboarding-btn"
+							className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-700"
+						>
+							<FolderCog className="h-4 w-4 text-amber-400" /> Library setup
+						</button>
+						<Link
+							to="/reader"
+							className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500"
+						>
+							<BookOpen className="h-4 w-4" /> Open reader
+						</Link>
+					</div>
 				</div>
 
 				{/* Backend still starting / unreachable: amber, auto-retrying. */}

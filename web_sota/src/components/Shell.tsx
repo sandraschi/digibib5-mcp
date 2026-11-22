@@ -17,6 +17,7 @@ import {
 	ChevronRight,
 	HelpCircle,
 	LayoutDashboard,
+	Library,
 	MessageSquare,
 	Moon,
 	Search,
@@ -50,6 +51,7 @@ const HEALTH_URL = "/api/health";
 /* CUSTOMIZE: add/remove nav items for this repo */
 const NAV = [
 	{ to: "/", label: "Dashboard", icon: LayoutDashboard },
+	{ to: "/catalog", label: "Catalog", icon: Library },
 	{ to: "/reader", label: "Reader", icon: BookOpen },
 	{ to: "/tools", label: "Tools", icon: Wrench },
 	{ to: "/chat", label: "Chat", icon: MessageSquare },

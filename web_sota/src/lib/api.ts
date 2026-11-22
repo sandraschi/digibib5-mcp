@@ -74,6 +74,20 @@ export interface SearchResponse {
 	results: SearchHit[];
 }
 
+export interface GlobalSearchHit {
+	volume_id: string;
+	record: number;
+	snippet: string;
+}
+
+export interface GlobalSearchResponse {
+	success: boolean;
+	query: string;
+	indexed_volumes: number;
+	count: number;
+	results: GlobalSearchHit[];
+}
+
 async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
 	const r = await fetch(url, init);
 	const data = (await r.json()) as T;
@@ -109,6 +123,10 @@ export const api = {
 	search: (vid: string, q: string, limit = 20) =>
 		getJSON<SearchResponse>(
 			`/api/volume/${encodeURIComponent(vid)}/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+		),
+	searchAll: (q: string, limit = 20) =>
+		getJSON<GlobalSearchResponse>(
+			`/api/search?q=${encodeURIComponent(q)}&limit=${limit}`,
 		),
 	images: (vid: string, level?: number) =>
 		getJSON<ImagesResponse>(

@@ -19,7 +19,14 @@ if (-not $bun) {
     exit 1
 }
 
-$uv = "C:\Users\sandr\.local\bin\uv.exe"
+$uv = @(
+    "C:\Users\sandr\.local\bin\uv.exe",
+    (Get-Command uv.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1)
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+if (-not $uv) {
+    Write-Host "ERROR: uv.exe not found. Install uv, then retry." -ForegroundColor Red
+    exit 1
+}
 
 # Free the ports in case a previous run left something behind.
 foreach ($port in 14114, 14115) {
@@ -43,5 +50,19 @@ if (-not (Test-Path (Join-Path $web "node_modules"))) {
 
 Write-Host "Starting Vite dev server on http://127.0.0.1:14114 ..." -ForegroundColor Green
 Write-Host "(Ctrl+C here stops the frontend; run stop.bat to also stop the backend.)" -ForegroundColor DarkGray
+$null = Start-Job -ScriptBlock {
+    $deadline = (Get-Date).AddSeconds(25)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $tcp = New-Object System.Net.Sockets.TcpClient
+            $tcp.Connect("127.0.0.1", 14114)
+            $tcp.Close()
+            Start-Process "http://127.0.0.1:14114/"
+            break
+        } catch {
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
 Set-Location $web
 & $bun run dev
