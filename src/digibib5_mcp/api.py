@@ -467,7 +467,11 @@ def _op_specs() -> list[dict[str, Any]]:
                         desc = meta.description or ""
                         break
             props[arg] = {"type": "integer" if arg in _INT_ARGS else "string", "description": desc}
-            if (arg == "volume_id" and op != "search") or arg == "query" or (op in ("node_text", "record_text") and arg in ("node_index", "record_index")):
+            if (
+                (arg == "volume_id" and op != "search")
+                or arg == "query"
+                or (op in ("node_text", "record_text") and arg in ("node_index", "record_index"))
+            ):
                 required.append(arg)
         ops.append(
             {
@@ -812,6 +816,7 @@ middleware = [
         allow_headers=["*"],
     )
 ]
+
 
 @asynccontextmanager
 async def _lifespan(_app: Starlette) -> AsyncIterator[None]:

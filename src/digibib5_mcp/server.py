@@ -44,7 +44,8 @@ def digibib(
         Field(description="list_volumes | stats | descriptor | toc | node_text | record_text | search | images"),
     ] = "list_volumes",
     volume_id: Annotated[
-        str | None, Field(description="Volume folder id, e.g. 'DB008' (optional for search; not used by list_volumes/stats).")
+        str | None,
+        Field(description="Volume folder id, e.g. 'DB008' (optional for search; not used by list_volumes/stats)."),
     ] = None,
     node_index: Annotated[int | None, Field(description="toc node index (node_text).")] = None,
     record_index: Annotated[int | None, Field(description="record index (record_text).")] = None,
