@@ -682,10 +682,53 @@ export function ReaderPage() {
 										the left to read records directly.
 									</div>
 								)}
+								{content.truncated && content.record != null && (
+									<div className="mt-4 flex items-center justify-between rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+										<span>
+											Chapter truncated at 2000 records (shows #
+											{content.record}–{content.record + 1999} of{" "}
+											{content.records_total}).
+										</span>
+										<button
+											type="button"
+											onClick={() => void showRecord((content.record ?? 0) + 2000)}
+											className="rounded bg-amber-600 px-2.5 py-1 font-medium text-white hover:bg-amber-500"
+										>
+											Continue at record #{(content.record ?? 0) + 2000} →
+										</button>
+									</div>
+								)}
+								{content.record_index != null && (
+									<div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3 text-xs">
+										<button
+											type="button"
+											disabled={content.record_index <= 0}
+											onClick={() =>
+												void showRecord((content.record_index ?? 0) - 1)
+											}
+											className="rounded border border-white/10 px-2.5 py-1 text-gray-300 hover:bg-white/5 disabled:opacity-40"
+										>
+											← Prev record
+										</button>
+										<span className="text-gray-500">
+											Record #{content.record_index} of {recordCount}
+										</span>
+										<button
+											type="button"
+											disabled={content.record_index + 1 >= recordCount}
+											onClick={() =>
+												void showRecord((content.record_index ?? 0) + 1)
+											}
+											className="rounded border border-white/10 px-2.5 py-1 text-gray-300 hover:bg-white/5 disabled:opacity-40"
+										>
+											Next record →
+										</button>
+									</div>
+								)}
 								<p className="mt-6 border-t border-white/5 pt-3 text-xs text-gray-600">
-									Text decode is v2 (flowing paragraphs, heads dropped) -
-									readable but not yet byte-faithful. A chapter shows all its
-									records; the volume root is capped at 100.
+									Text decode is v3 (flowing paragraphs, heads dropped) -
+									readable but not yet byte-faithful. Long chapters are capped at
+									2000 records per view.
 								</p>
 							</article>
 						)}

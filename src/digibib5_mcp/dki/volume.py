@@ -67,8 +67,8 @@ _HEADER_ZONE = 128
 
 # node_text safety caps: a chapter extent can span 60+ records (Sandmann ~60);
 # the volume root spans all records, so it must be truncated.
-MAX_NODE_RECORDS = 100
-MAX_NODE_CHARS = 300_000
+MAX_NODE_RECORDS = 2000
+MAX_NODE_CHARS = 2_000_000
 
 
 @dataclass
