@@ -14,9 +14,11 @@ from __future__ import annotations
 import asyncio
 import collections
 import inspect
+import json
 import logging
 import os
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from starlette.applications import Starlette
@@ -27,7 +29,16 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 
 from . import llm as llm_engine
-from .dki import MAX_NODE_RECORDS, DigibibLibrary, image_mime
+from .dki import (
+    MAX_NODE_RECORDS,
+    DigibibLibrary,
+    DigibibVolume,
+    image_mime,
+    load_library_config,
+    resolve_library_root,
+    save_library_config,
+    search_all_volumes,
+)
 
 # ------------------------------------------------------------- request log
 LOG_BUFFER: collections.deque[dict[str, Any]] = collections.deque(maxlen=500)
@@ -93,9 +104,75 @@ async def health(request: Request) -> JSONResponse:
     )
 
 
+_CATALOG_CACHE: dict[str, dict[str, str]] | None = None
+
+
+def _load_catalog() -> dict[str, dict[str, str]]:
+    global _CATALOG_CACHE
+    if _CATALOG_CACHE is None:
+        path = Path(__file__).with_name("catalog.json")
+        if path.is_file():
+            try:
+                raw = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(raw, dict):
+                    _CATALOG_CACHE = {str(k).upper(): v for k, v in raw.items() if isinstance(v, dict)}
+                else:
+                    _CATALOG_CACHE = {}
+            except (OSError, json.JSONDecodeError):
+                _CATALOG_CACHE = {}
+        else:
+            _CATALOG_CACHE = {}
+    return _CATALOG_CACHE
+
+
+async def catalog(request: Request) -> JSONResponse:
+    lib = _library(request)
+    vols = await asyncio.to_thread(lib.list_volumes)
+    installed_map = {v.id.upper(): v for v in vols}
+    cat = _load_catalog()
+    entries: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for vid, meta in cat.items():
+        seen.add(vid)
+        inst = installed_map.get(vid)
+        entries.append(
+            {
+                "id": inst.id if inst else vid,
+                "title": meta.get("title") or (inst.title if inst else vid),
+                "category": meta.get("category") or "Other",
+                "language": meta.get("language") or "de",
+                "summary": meta.get("summary") or "",
+                "installed": inst is not None,
+            }
+        )
+    for vid_upper, inst in installed_map.items():
+        if vid_upper not in seen:
+            entries.append(
+                {
+                    "id": inst.id,
+                    "title": inst.title,
+                    "category": "Other",
+                    "language": "de",
+                    "summary": "Installed Digitale Bibliothek volume.",
+                    "installed": True,
+                }
+            )
+    entries.sort(key=lambda e: e["id"].upper())
+    categories = sorted({e["category"] for e in entries})
+    return JSONResponse(
+        {
+            "success": True,
+            "count": len(entries),
+            "installed_count": len(vols),
+            "categories": categories,
+            "volumes": entries,
+        }
+    )
+
+
 async def volumes(request: Request) -> JSONResponse:
     lib = _library(request)
-    vols = lib.list_volumes()
+    vols = await asyncio.to_thread(lib.list_volumes)
     return JSONResponse(
         {
             "success": True,
@@ -210,6 +287,26 @@ async def search(request: Request) -> JSONResponse:
     return JSONResponse({"success": True, "volume_id": vid, "query": q, "count": len(hits), "results": hits})
 
 
+async def search_all(request: Request) -> JSONResponse:
+    q = request.query_params.get("q", "")
+    if not q.strip():
+        return JSONResponse({"success": False, "error": "search needs ?q=."}, status_code=400)
+    try:
+        lim = int(request.query_params.get("limit", "20"))
+    except ValueError:
+        lim = 20
+    hits, indexed = await asyncio.to_thread(search_all_volumes, q, lim)
+    return JSONResponse(
+        {
+            "success": True,
+            "query": q,
+            "indexed_volumes": indexed,
+            "count": len(hits),
+            "results": [{"volume_id": v, "record": r, "snippet": s} for v, r, s in hits],
+        }
+    )
+
+
 async def images(request: Request) -> JSONResponse:
     try:
         vol, vid = _open(request)
@@ -243,8 +340,6 @@ async def image_file(request: Request) -> Response:
         return JSONResponse({"success": False, "error": str(e)}, status_code=404)
     return Response(content=data, media_type=image_mime(data) or "application/octet-stream")
 
-    return Response(content=data, media_type="image/bmp")
-
 
 async def logs(request: Request) -> JSONResponse:
     try:
@@ -255,35 +350,79 @@ async def logs(request: Request) -> JSONResponse:
     return JSONResponse({"success": True, "count": len(entries), "logs": entries})
 
 
-async def stats(request: Request) -> JSONResponse:
-    lib = _library(request)
+_STATS_CACHE: dict[str, dict[str, int]] = {}
+_STATS_TASKS: dict[str, asyncio.Task[dict[str, int]]] = {}
+
+
+def _compute_stats_sync(root: str) -> dict[str, int]:
+    lib = DigibibLibrary(root=root)
     vols = lib.list_volumes()
     total_records = 0
     total_figures = 0
     for v in vols:
         try:
-            vol = lib.open(v.id)
+            vol = DigibibVolume(v.data_dir)
             total_records += vol.record_count
             total_figures += len(vol.images())
         except Exception:
             continue
+    return {
+        "volumes": len(vols),
+        "total_records": total_records,
+        "total_figures": total_figures,
+    }
+
+
+async def stats(request: Request) -> JSONResponse:
+    lib = _library(request)
+    root_key = str(lib.root)
     index_db = llm_engine.data_dir() / "search.db"
-    return JSONResponse(
-        {
-            "success": True,
-            "volumes": len(vols),
-            "total_records": total_records,
-            "total_figures": total_figures,
-            "index_bytes": index_db.stat().st_size if index_db.is_file() else 0,
-        }
-    )
+    index_bytes = index_db.stat().st_size if index_db.is_file() else 0
+
+    cached = _STATS_CACHE.get(root_key)
+    if cached is not None:
+        return JSONResponse({"success": True, **cached, "index_bytes": index_bytes, "computing": False})
+
+    vols = await asyncio.to_thread(lib.list_volumes)
+    task = _STATS_TASKS.get(root_key)
+    if task is None or task.done():
+        task = asyncio.create_task(asyncio.to_thread(_compute_stats_sync, root_key))
+        _STATS_TASKS[root_key] = task
+
+    try:
+        computed = await asyncio.wait_for(asyncio.shield(task), timeout=0.5)
+        _STATS_CACHE[root_key] = computed
+        return JSONResponse({"success": True, **computed, "index_bytes": index_bytes, "computing": False})
+    except TimeoutError:
+        return JSONResponse(
+            {
+                "success": True,
+                "volumes": len(vols),
+                "total_records": 0,
+                "total_figures": 0,
+                "index_bytes": index_bytes,
+                "computing": True,
+            }
+        )
+    except Exception:
+        return JSONResponse(
+            {
+                "success": True,
+                "volumes": len(vols),
+                "total_records": 0,
+                "total_figures": 0,
+                "index_bytes": index_bytes,
+                "computing": False,
+            }
+        )
 
 
 # ------------------------------------------------------------- live tools
-_OP_ORDER = ["list_volumes", "descriptor", "toc", "node_text", "record_text", "search", "images"]
+_OP_ORDER = ["list_volumes", "stats", "descriptor", "toc", "node_text", "record_text", "search", "images"]
 
 _OP_ARGS: dict[str, list[str]] = {
     "list_volumes": [],
+    "stats": [],
     "descriptor": ["volume_id"],
     "toc": ["volume_id", "max_depth"],
     "node_text": ["volume_id", "node_index"],
@@ -291,6 +430,8 @@ _OP_ARGS: dict[str, list[str]] = {
     "search": ["volume_id", "query", "limit"],
     "images": ["volume_id", "level"],
 }
+
+_INT_ARGS = {"node_index", "record_index", "max_depth", "limit", "level"}
 
 
 def _op_specs() -> list[dict[str, Any]]:
@@ -317,8 +458,8 @@ def _op_specs() -> list[dict[str, Any]]:
                     if hasattr(meta, "description"):
                         desc = meta.description or ""
                         break
-            props[arg] = {"type": "string", "description": desc}
-            if arg in ("volume_id", "query") or (op == "node_text" and arg == "node_index"):
+            props[arg] = {"type": "integer" if arg in _INT_ARGS else "string", "description": desc}
+            if (arg == "volume_id" and op != "search") or arg == "query" or (op in ("node_text", "record_text") and arg in ("node_index", "record_index")):
                 required.append(arg)
         ops.append(
             {
@@ -356,7 +497,17 @@ async def tool_run(request: Request) -> JSONResponse:
     if not isinstance(args, dict):
         return JSONResponse({"success": False, "error": "arguments must be an object"}, status_code=400)
     allowed = set(_OP_ARGS[name]) | {"root"}
-    kwargs = {k: v for k, v in args.items() if k in allowed}
+    kwargs: dict[str, Any] = {}
+    for k, v in args.items():
+        if k not in allowed or v is None or v == "":
+            continue
+        if k in _INT_ARGS:
+            try:
+                kwargs[k] = int(v)
+            except (TypeError, ValueError):
+                return JSONResponse({"success": False, "error": f"{k} must be an integer"}, status_code=400)
+        else:
+            kwargs[k] = v
     try:
         result = digibib(operation=name, **kwargs)
     except Exception as e:
@@ -551,14 +702,73 @@ async def llm_install_status(request: Request) -> JSONResponse:
         return JSONResponse({"success": False, "error": str(e)}, status_code=400)
 
 
+async def library_settings_get(request: Request) -> JSONResponse:
+    root, source = resolve_library_root()
+    lib = DigibibLibrary(root=root)
+    vols = await asyncio.to_thread(lib.list_volumes)
+    cfg = load_library_config()
+    return JSONResponse(
+        {
+            "success": True,
+            "root": str(lib.root),
+            "root_exists": lib.root.is_dir(),
+            "volume_count": len(vols),
+            "source": source,
+            "onboarded": bool(cfg.get("onboarded", False)),
+        }
+    )
+
+
+async def library_settings_test(request: Request) -> JSONResponse:
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    raw_root = str(body.get("root") or "").strip() if isinstance(body, dict) else ""
+    if not raw_root:
+        return JSONResponse({"success": False, "error": "root path required"}, status_code=400)
+    lib = DigibibLibrary(root=raw_root)
+    vols = await asyncio.to_thread(lib.list_volumes)
+    return JSONResponse(
+        {
+            "success": True,
+            "ok": len(vols) > 0,
+            "root": str(lib.root),
+            "root_exists": lib.root.is_dir(),
+            "volume_count": len(vols),
+            "sample_volumes": [{"id": v.id, "title": v.title} for v in vols[:5]],
+        }
+    )
+
+
+async def library_settings_save(request: Request) -> JSONResponse:
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        return JSONResponse({"success": False, "error": "object body required"}, status_code=400)
+    raw_root = body.get("root")
+    onboarded = body.get("onboarded")
+    save_library_config(
+        root=str(raw_root) if raw_root is not None else None,
+        onboarded=bool(onboarded) if onboarded is not None else None,
+    )
+    _STATS_CACHE.clear()
+    _STATS_TASKS.clear()
+    return await library_settings_get(request)
+
+
 routes = [
     Route("/api/health", health),
+    Route("/api/catalog", catalog),
     Route("/api/volumes", volumes),
     Route("/api/volume/{vid}/descriptor", descriptor),
     Route("/api/volume/{vid}/toc", toc),
     Route("/api/volume/{vid}/node/{idx:int}/text", node_text),
     Route("/api/volume/{vid}/record/{idx:int}/text", record_text),
     Route("/api/volume/{vid}/search", search),
+    Route("/api/search", search_all),
     Route("/api/volume/{vid}/images", images),
     Route("/api/volume/{vid}/image/{level:int}/{name:str}", image_file),
     Route("/api/logs", logs),
@@ -572,6 +782,9 @@ routes = [
     Route("/api/settings/llm", llm_settings_get, methods=["GET"]),
     Route("/api/settings/llm", llm_settings_save, methods=["POST"]),
     Route("/api/settings/llm/key", llm_settings_delete_key, methods=["DELETE"]),
+    Route("/api/settings/library", library_settings_get, methods=["GET"]),
+    Route("/api/settings/library", library_settings_save, methods=["POST"]),
+    Route("/api/settings/library/test", library_settings_test, methods=["POST"]),
     Route("/api/llm/chat", llm_chat, methods=["POST"]),
     Route("/api/llm/chat/stream", llm_chat_stream, methods=["POST"]),
     Route("/api/llm/gpus", llm_gpus),

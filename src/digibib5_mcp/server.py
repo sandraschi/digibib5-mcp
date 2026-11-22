@@ -15,7 +15,8 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
-from .dki import MAX_NODE_RECORDS, DigibibLibrary
+from .dki import MAX_NODE_RECORDS, DigibibLibrary, indexed_volume_count, search_all_volumes
+from .dki.search import _db_path
 
 mcp = FastMCP("digibib5-mcp", version="0.5.1")
 
@@ -40,10 +41,10 @@ def _toc_dict(node, max_depth: int | None, depth: int = 0) -> dict[str, Any]:
 def digibib(
     operation: Annotated[
         str,
-        Field(description="list_volumes | descriptor | toc | node_text | record_text | search | images"),
+        Field(description="list_volumes | stats | descriptor | toc | node_text | record_text | search | images"),
     ] = "list_volumes",
     volume_id: Annotated[
-        str | None, Field(description="Volume folder id, e.g. 'DB008' (all ops except list_volumes).")
+        str | None, Field(description="Volume folder id, e.g. 'DB008' (optional for search; not used by list_volumes/stats).")
     ] = None,
     node_index: Annotated[int | None, Field(description="toc node index (node_text).")] = None,
     record_index: Annotated[int | None, Field(description="record index (record_text).")] = None,
@@ -62,13 +63,15 @@ def digibib(
 
     Operations:
     - `list_volumes`  -> every installed CD-ROM volume: {id, title}.
+    - `stats`         -> library root, root_exists, volume count, indexed volume count, and FTS index size.
     - `descriptor`    -> the volume's DIGIBIB.TXT identity keys.
     - `toc`           -> the table of contents as a nested tree (node index +
                          record index per node). Use max_depth to trim.
     - `node_text`     -> decoded text for a TOC node: the full chapter extent
                          (record..record_end, records_total, truncated flag).
     - `record_text`   -> decoded text for a raw TEXT.DKI record index.
-    - `search`        -> full-text search over decoded text (needs query):
+    - `search`        -> full-text search over decoded text (needs query; omit
+                         volume_id to search all already-indexed volumes):
                          [{record, node_index, chapter, snippet}]. First search
                          per volume builds an FTS cache (~10 s), then instant.
     - `images`        -> figures at a zoom level (needs level or takes the
@@ -85,6 +88,31 @@ def digibib(
     if op == "list_volumes":
         vols = lib.list_volumes()
         return {"success": True, "count": len(vols), "volumes": [{"id": v.id, "title": v.title} for v in vols]}
+
+    if op == "stats":
+        vols = lib.list_volumes()
+        db = _db_path()
+        return {
+            "success": True,
+            "root": str(lib.root),
+            "root_exists": lib.root.is_dir(),
+            "volumes": len(vols),
+            "indexed_volumes": indexed_volume_count(db),
+            "index_bytes": db.stat().st_size if db.is_file() else 0,
+        }
+
+    if op == "search" and not volume_id:
+        if not query or not query.strip():
+            return {"success": False, "error": "search needs query."}
+        hits, indexed = search_all_volumes(query, limit or 20)
+        return {
+            "success": True,
+            "volume_id": None,
+            "query": query,
+            "indexed_volumes": indexed,
+            "count": len(hits),
+            "results": [{"volume_id": v, "record": r, "snippet": s} for v, r, s in hits],
+        }
 
     if not volume_id:
         return {"success": False, "error": f"operation '{op}' needs volume_id."}
@@ -179,7 +207,7 @@ def digibib(
 
     return {
         "success": False,
-        "error": f"Unknown operation '{operation}'. Valid: list_volumes, descriptor, toc, node_text, record_text, search, images.",
+        "error": f"Unknown operation '{operation}'. Valid: list_volumes, stats, descriptor, toc, node_text, record_text, search, images.",
     }
 
 

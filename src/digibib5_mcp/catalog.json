@@ -1,0 +1,458 @@
+{
+  "DB002": {
+    "title": "Philosophie von Platon bis Nietzsche",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Core Western philosophical texts in German translation from Plato and Aristotle through Descartes, Spinoza, Kant, Hegel, Schopenhauer, and Nietzsche."
+  },
+  "DB003": {
+    "title": "Geschichte der Philosophie",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Comprehensive multi-author reference history of philosophy covering antiquity, medieval scholasticism, modern rationalism, empiricism, and 19th-century thought."
+  },
+  "DB004": {
+    "title": "Johann Wolfgang von Goethe: Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Collected works of Goethe based on the Hamburg/Weimar tradition: poetry, Faust I & II, novels, dramas, autobiographical writings, and aesthetic essays."
+  },
+  "DB005": {
+    "title": "Gotthold Ephraim Lessing: Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Enlightenment dramas (Nathan der Weise, Emilia Galotti, Minna von Barnhelm), critical essays (Laokoon, Hamburgische Dramaturgie), fables, and theological polemics."
+  },
+  "DB006": {
+    "title": "Russische Literatur: Von Nestor bis Majakowski",
+    "category": "Literature",
+    "language": "ru",
+    "summary": "Anthology of Russian literature in the original Cyrillic (ISO-8859-5) from the Primary Chronicle through Pushkin, Gogol, Dostoevsky, Tolstoy, Chekhov, and Mayakovsky."
+  },
+  "DB007": {
+    "title": "Heinrich Heine: Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Complete poetry, travelogues (Reisebilder), political journalism, and essays on German philosophy and Romanticism by Heinrich Heine."
+  },
+  "DB008": {
+    "title": "E.T.A. Hoffmann: Gesammelte Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Tales, novels, and music criticism of German Romanticism's master of the uncanny, including Der Sandmann, Kater Murr, Die Elixiere des Teufels, and Serapions-Brüder."
+  },
+  "DB009": {
+    "title": "Killy Literaturlexikon",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Walther Killy's 15-volume encyclopedia of German-language authors, anonymous works, literary movements, and genres from the Middle Ages to the late 20th century."
+  },
+  "DB011": {
+    "title": "Marx / Engels: Ausgewählte Werke",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Selected philosophical, economic, and political writings of Karl Marx and Friedrich Engels, including Das Kapital, the Communist Manifesto, and historical essays."
+  },
+  "DB013": {
+    "title": "Wilpert: Lexikon der Weltliteratur",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Gero von Wilpert's two-part biographical and work lexicon covering major authors and canonical texts of world literature across all eras."
+  },
+  "DB014": {
+    "title": "Propyläen-Weltgeschichte",
+    "category": "History",
+    "language": "de",
+    "summary": "Landmark 10-volume universal history edited by Golo Mann and Alfred Heuß, spanning early human civilizations through the Cold War."
+  },
+  "DB015": {
+    "title": "Kurt Tucholsky: Gesammelte Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Satires, poems, essays, and Weimar-era journalism published by Kurt Tucholsky under his pseudonyms Peter Panter, Theobald Tiger, Ignaz Wrobel, and Kaspar Hauser."
+  },
+  "DB017": {
+    "title": "Wörterbuch der Mythologie",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "Reference dictionary of deities, heroes, legends, and mythological motifs across Greek, Roman, Germanic, Celtic, Egyptian, and Near Eastern traditions."
+  },
+  "DB018": {
+    "title": "Lexikon der Antike",
+    "category": "History",
+    "language": "de",
+    "summary": "Encyclopedic guide to classical Greek and Roman antiquity covering history, literature, daily life, law, art, and philosophy."
+  },
+  "DB019": {
+    "title": "Bilderlexikon der Erotik",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Historical cultural-history encyclopedia of eroticism, customs, literature, and visual motifs compiled by the Vienna Institute for Sexual Research."
+  },
+  "DB020": {
+    "title": "Der Nürnberger Prozeß",
+    "category": "History",
+    "language": "de",
+    "summary": "Complete 42-volume official German transcript and document collection of the International Military Tribunal at Nuremberg (1945-1946)."
+  },
+  "DB022": {
+    "title": "Kindlers Malerei-Lexikon",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Biographical and stylistic encyclopedia of European and international painters, schools, and painting techniques with companion reproductions."
+  },
+  "DB025": {
+    "title": "Enzyklopädie des Nationalsozialismus",
+    "category": "History",
+    "language": "de",
+    "summary": "Scholarly reference edited by Wolfgang Benz, Hermann Graml, and Hermann Weiß covering the ideology, institutions, biographies, and crimes of the Nazi regime."
+  },
+  "DB027": {
+    "title": "Bury: Lexikon lateinischer Zitate und Wendungen",
+    "category": "Reference & Lexica",
+    "language": "de / la",
+    "summary": "Collection of Latin proverbs, legal maxims, and classical quotations with German translations, attributions, and usage context."
+  },
+  "DB028": {
+    "title": "Albrecht Dürer: Das Gesamtwerk",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Complete paintings, copper engravings, woodcuts, drawings, and theoretical treatises of Albrecht Dürer with catalog commentary."
+  },
+  "DB030": {
+    "title": "Dichtung der Antike von Homer bis Nonnos",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Greek and Latin epic, lyric, dramatic, and didactic poetry in German verse translations from Homer and Sappho to Virgil, Ovid, and Nonnus."
+  },
+  "DB031": {
+    "title": "Friedrich Nietzsche: Werke",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Collected works of Friedrich Nietzsche based on the Schlechta edition: Also sprach Zarathustra, Jenseits von Gut und Böse, Genealogie der Moral, letters, and Nachlass."
+  },
+  "DB043": {
+    "title": "Lexikon der Kunst",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Seemann's 7-volume encyclopedia of architecture, visual arts, applied arts, aesthetics, and art history across cultures."
+  },
+  "DB044": {
+    "title": "Heinrich Graetz: Geschichte der Juden",
+    "category": "History",
+    "language": "de",
+    "summary": "Classic 11-volume history of the Jewish people from biblical antiquity to the 19th century by historian Heinrich Graetz."
+  },
+  "DB046": {
+    "title": "Der Koran",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "German translations of the Quran (including Rückert and Henning) accompanied by classical commentary and thematic concordance."
+  },
+  "DB047": {
+    "title": "Lexikon des Islam",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "Reference lexicon on Islamic theology, jurisprudence, history, mysticism, art, and cultural institutions."
+  },
+  "DB048": {
+    "title": "Lexikon des Buddhismus",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "Encyclopedic dictionary of Buddhist schools, doctrines, canonical texts, meditation practices, and historical figures."
+  },
+  "DB050": {
+    "title": "Brockhaus: Kleines Konversationslexikon (1911)",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Historical two-volume 1911 Brockhaus encyclopedia with ~80,000 entries, maps, and illustrations capturing early-20th-century knowledge."
+  },
+  "DB051": {
+    "title": "Hugo Friedländer: Interessante Kriminalprozesse",
+    "category": "History",
+    "language": "de",
+    "summary": "Famous German and European criminal trials of the late 19th and early 20th centuries documented by court reporter Hugo Friedländer."
+  },
+  "DB052": {
+    "title": "Reclams elektronisches Opernlexikon",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Guide to the international opera repertoire with synopses, premiere histories, roles, voice types, and composer biographies."
+  },
+  "DB053": {
+    "title": "Illustrierte Geschichte der Medizin",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Illustrated multi-volume history of medicine, anatomy, surgery, and pharmacology from ancient healing traditions to modern clinical science."
+  },
+  "DB055": {
+    "title": "Geschichte des Altertums",
+    "category": "History",
+    "language": "de",
+    "summary": "Eduard Meyer's monumental history of the ancient Near East, Egypt, Greece, and the Mediterranean world."
+  },
+  "DB057": {
+    "title": "Operntexte von Monteverdi bis Strauss",
+    "category": "Art & Music",
+    "language": "de / it / fr",
+    "summary": "Librettos of major operas from Claudio Monteverdi and Mozart to Verdi, Wagner, Puccini, and Richard Strauss, with German translations."
+  },
+  "DB058": {
+    "title": "Max Weber: Gesammelte Werke",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Sociological, economic, and political writings of Max Weber, including Wirtschaft und Gesellschaft, The Protestant Ethic, and essays on methodology."
+  },
+  "DB059": {
+    "title": "English and American Literature from Shakespeare to Mark Twain",
+    "category": "Literature",
+    "language": "en",
+    "summary": "Original-language anthology of English and American poetry, drama, and fiction spanning Shakespeare, Milton, Austen, Dickens, Poe, Melville, and Twain."
+  },
+  "DB060": {
+    "title": "Die Musik in Geschichte und Gegenwart (MGG)",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "First edition of the flagship German music encyclopedia covering composers, instruments, music theory, genres, and regional music traditions."
+  },
+  "DB061": {
+    "title": "William Shakespeare: Complete Works",
+    "category": "Literature",
+    "language": "en",
+    "summary": "All plays, sonnets, and narrative poems of William Shakespeare in English alongside German translations and editorial apparatus."
+  },
+  "DB062": {
+    "title": "Wander: Deutsches Sprichwörter-Lexikon",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Karl Friedrich Wilhelm Wander's 5-volume thesaurus of over 250,000 German proverbs, idioms, and regional sayings with dialect variants."
+  },
+  "DB063": {
+    "title": "Martin Luther: Gesammelte Werke",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "Reformation treatises, sermons, table talks (Tischreden), hymns, and biblical prefaces by Martin Luther."
+  },
+  "DB069": {
+    "title": "Georges: Lateinisch-deutsches Wörterbuch",
+    "category": "Reference & Lexica",
+    "language": "de / la",
+    "summary": "Karl Ernst Georges's standard Latin-German and German-Latin dictionary with classical citations, grammar notes, and etymologies."
+  },
+  "DB072": {
+    "title": "Hans Delbrück: Geschichte der Kriegskunst",
+    "category": "History",
+    "language": "de",
+    "summary": "Four-volume military history analyzing strategy, tactics, and political organization from the Persian Wars through the Napoleonic era."
+  },
+  "DB074": {
+    "title": "Wilhelm Busch: Gesammelte Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Illustrated comic verse stories, poems, and prose by Wilhelm Busch, including Max und Moritz, Die fromme Helene, and Plisch und Plum."
+  },
+  "DB075": {
+    "title": "Deutsche Lyrik von Luther bis Rilke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Anthology of German poetry from the Reformation and Baroque through Romanticism, Realism, and early Modernism."
+  },
+  "DB076": {
+    "title": "Brehms Tierleben",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Alfred Brehm's classic illustrated natural history encyclopedia describing mammals, birds, reptiles, amphibians, fish, and invertebrates."
+  },
+  "DB077": {
+    "title": "Karl Mays Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Adventure novels and travel stories of Karl May, including the Winnetou trilogy, Durch die Wüste, Der Schut, and late symbolic works."
+  },
+  "DB080": {
+    "title": "Deutsche Märchen und Sagen",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Collections of German fairy tales and legends including the Brothers Grimm, Bechstein, Musäus, and regional folkloric sagas."
+  },
+  "DB082": {
+    "title": "Wörterbuch Archäologie",
+    "category": "History",
+    "language": "de",
+    "summary": "Reference dictionary of archaeological sites, cultures, excavation methods, artifacts, and chronological periods."
+  },
+  "DB083": {
+    "title": "Wörterbuch Psychologie",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Encyclopedic dictionary of clinical, cognitive, developmental, and social psychology, psychoanalysis, and research methodology."
+  },
+  "DB086": {
+    "title": "Die Reden Buddhas",
+    "category": "Religion & Mythology",
+    "language": "de",
+    "summary": "German translation of the Pali Canon discourses (Digha, Majjhima, Samyutta, and Anguttara Nikaya) by Karl Eugen Neumann and Nyanaponika."
+  },
+  "DB087": {
+    "title": "Erzählungen aus 1001 Nacht",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Enno Littmann's complete German translation of One Thousand and One Nights directly from the Arabic manuscripts."
+  },
+  "DB088": {
+    "title": "Deutsche Literatur im Mittelalter",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Medieval German epics, Minnesang, chronicles, and courtly romances (Nibelungenlied, Parzival, Tristan, Walther von der Vogelweide)."
+  },
+  "DB089": {
+    "title": "Die Bibliothek der Weltliteratur",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Broad international canon in German translation spanning classical antiquity, European novels, Asian classics, and 19th-century masterpieces."
+  },
+  "DB090": {
+    "title": "Märchenlexikon",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Scholarly encyclopedia of fairy-tale motifs, tale types (Aarne-Thompson), collectors, and literary traditions."
+  },
+  "DB093": {
+    "title": "Hexen: Analysen, Quellen, Dokumente",
+    "category": "History",
+    "language": "de",
+    "summary": "Historical studies, trial records, and primary documents on early modern European witch hunts, including the Malleus Maleficarum."
+  },
+  "DB094": {
+    "title": "Asiatische Philosophie",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Classical Indian, Chinese, and Japanese philosophical texts including the Upanishads, Bhagavad Gita, Confucius, Laozi, Zhuangzi, and Zen treatises."
+  },
+  "DB097": {
+    "title": "Theodor W. Adorno: Gesammelte Schriften",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Complete Suhrkamp edition of Theodor W. Adorno's works: Dialektik der Aufklärung, Minima Moralia, Negative Dialektik, Ästhetische Theorie, and musicology."
+  },
+  "DB099": {
+    "title": "Stefan George: Werke",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Poetry cycles, translations (Dante, Shakespeare, Baudelaire), and prose of Symbolist poet Stefan George."
+  },
+  "DB105": {
+    "title": "Jules Verne: Das erzählerische Werk",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Complete Voyages Extraordinaires in German translation, including Twenty Thousand Leagues Under the Seas, Around the World in Eighty Days, and Mysterious Island."
+  },
+  "DB108": {
+    "title": "Gutes Benehmen: Anstandsbücher von Knigge bis heute",
+    "category": "History",
+    "language": "de",
+    "summary": "Cultural history of etiquette and social conduct from Adolph Freiherr Knigge's Über den Umgang mit Menschen to 20th-century manners guides."
+  },
+  "DB111": {
+    "title": "Merkwürdige Literatur",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Curated collection of eccentric, fantastic, satirical, and forgotten curiosities from German and European literary history."
+  },
+  "DB120": {
+    "title": "Faust: Anthologie einer deutschen Legende",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Evolution of the Faust legend from the 1587 Volksbuch and Marlowe through Lessing, Goethe, Grabbe, Lenau, and Thomas Mann."
+  },
+  "DB122": {
+    "title": "Albert Einstein: Leben und Werk",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Biography, scientific papers, philosophical essays, and correspondence of Albert Einstein on relativity, quantum theory, and pacifism."
+  },
+  "DB123": {
+    "title": "Praktisches Wörterbuch der Musik",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Concise dictionary of musical terms, notation, harmony, instruments, and performance markings."
+  },
+  "DB124": {
+    "title": "Atlas Namenkunde",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Etymological and geographic atlas of German family names, given names, and place names with distribution maps."
+  },
+  "DB125": {
+    "title": "Deutsche Literatur von Luther bis Tucholsky",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Flagship mega-anthology uniting major German novels, novellas, plays, and essays from the 16th century to the Weimar Republic."
+  },
+  "DB128": {
+    "title": "Émile Zola: Die Rougon-Macquart",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Complete 20-novel Naturalist cycle by Émile Zola (Germinal, Nana, L'Assommoir, La Bête humaine) in German translation."
+  },
+  "DB132": {
+    "title": "Kriminalgeschichte des Christentums",
+    "category": "History",
+    "language": "de",
+    "summary": "Karlheinz Deschner's critical multi-volume history examining power, persecution, and conflict across Christian church history."
+  },
+  "DB157": {
+    "title": "Märchen der Welt",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Worldwide folktale collection spanning Europe, Asia, Africa, and the Americas from the Diederichs Märchen der Weltliteratur series."
+  },
+  "DB161": {
+    "title": "Edward Gibbon: Verfall und Untergang des römischen Imperiums",
+    "category": "History",
+    "language": "de",
+    "summary": "Complete German edition of Edward Gibbon's The History of the Decline and Fall of the Roman Empire."
+  },
+  "DBSO04": {
+    "title": "Das digitale Lexikon der populären Irrtümer",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Walter Krämer and Götz Trenkler's debunking encyclopedia of widespread historical, scientific, and everyday misconceptions."
+  },
+  "DBSO06": {
+    "title": "Das digitale Handbuch des nutzlosen Wissens",
+    "category": "Reference & Lexica",
+    "language": "de",
+    "summary": "Curated compendium of surprising trivia, odd historical facts, and curious records."
+  },
+  "DBSO08": {
+    "title": "Was Sie über Naturwissenschaften heute wissen müssen",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Accessible overview of modern physics, chemistry, biology, astronomy, and earth sciences for general readers."
+  },
+  "DBSO15": {
+    "title": "Immanuel Kant: Werke",
+    "category": "Philosophy",
+    "language": "de",
+    "summary": "Complete critical philosophy and pre-critical writings of Immanuel Kant, including the three Critiques and political essays."
+  },
+  "DBSO16": {
+    "title": "Giacomo Casanova: Geschichte meines Lebens",
+    "category": "Literature",
+    "language": "de",
+    "summary": "Unabridged German edition of Giacomo Casanova's 18th-century memoirs (Histoire de ma vie) across Venice, Paris, London, and Vienna."
+  },
+  "DBSO28": {
+    "title": "Samuel Hahnemann: Gesammelte Werke",
+    "category": "Science & Medicine",
+    "language": "de",
+    "summary": "Foundational medical writings of Samuel Hahnemann including the Organon der Heilkunst and Materia Medica Pura."
+  },
+  "TYPKK07": {
+    "title": "Kunst für Kenner: Das Designlexikon",
+    "category": "Art & Music",
+    "language": "de",
+    "summary": "Illustrated reference encyclopedia of industrial design, graphic design, furniture, typography, and 20th-century design movements."
+  }
+}

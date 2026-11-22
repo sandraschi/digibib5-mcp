@@ -8,14 +8,71 @@ and exposes the volume list for the CD picker.
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .volume import DigibibVolume
 
 # Default install root on the Goliath server. Override via DIGIBIB_ROOT env or
 # the DigibibLibrary(root=...) argument.
 DEFAULT_ROOT = r"K:\Digitale Bibliothek\Bibliothek"
+
+
+def _config_dir() -> Path:
+    override = os.environ.get("DIGIBIB_CACHE_DIR")
+    if override:
+        return Path(override)
+    return Path(__file__).resolve().parents[3] / "data"
+
+
+def library_config_path() -> Path:
+    return _config_dir() / "library.json"
+
+
+def load_library_config() -> dict[str, Any]:
+    path = library_config_path()
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_library_config(root: str | None = None, onboarded: bool | None = None) -> dict[str, Any]:
+    cfg = load_library_config()
+    if root is not None:
+        cleaned = root.strip()
+        if cleaned:
+            cfg["root"] = cleaned
+        else:
+            cfg.pop("root", None)
+    if onboarded is not None:
+        cfg["onboarded"] = bool(onboarded)
+    path = library_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    os.replace(tmp, path)
+    return cfg
+
+
+def resolve_library_root(explicit_root: str | Path | None = None) -> tuple[str, str]:
+    """Return (root_path, source) where source is explicit|saved|env|default."""
+    if explicit_root is not None and str(explicit_root).strip():
+        return str(explicit_root).strip(), "explicit"
+    cfg = load_library_config()
+    saved = cfg.get("root")
+    if isinstance(saved, str) and saved.strip():
+        return saved.strip(), "saved"
+    env_root = os.environ.get("DIGIBIB_ROOT", "").strip()
+    if env_root:
+        return env_root, "env"
+    return DEFAULT_ROOT, "default"
 
 
 @dataclass
@@ -27,9 +84,8 @@ class VolumeRef:
 
 class DigibibLibrary:
     def __init__(self, root: str | Path | None = None):
-        import os
-
-        self.root = Path(root or os.environ.get("DIGIBIB_ROOT", DEFAULT_ROOT))
+        resolved, _ = resolve_library_root(root)
+        self.root = Path(resolved)
 
     def _find_data_dir(self, vol_dir: Path) -> Path | None:
         """A volume folder contains a data folder (named 'data', sometimes other

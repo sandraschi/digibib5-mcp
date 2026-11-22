@@ -14,13 +14,22 @@ codec is v1/approximate (codec.py). Public API:
 """
 
 from .codec import decode_record_content, decode_tokens, postprocess_text, render_text
-from .library import DigibibLibrary, VolumeRef
-from .search import ensure_built, search_records
+from .library import (
+    DigibibLibrary,
+    VolumeRef,
+    load_library_config,
+    resolve_library_root,
+    save_library_config,
+)
+from .search import ensure_built, indexed_volume_count, search_all_volumes, search_records
 from .volume import MAX_NODE_CHARS, MAX_NODE_RECORDS, DigibibVolume, TocNode, image_mime, parse_bmp_info
 
 __all__ = [
     "DigibibLibrary",
     "VolumeRef",
+    "load_library_config",
+    "resolve_library_root",
+    "save_library_config",
     "DigibibVolume",
     "TocNode",
     "MAX_NODE_RECORDS",
@@ -32,5 +41,7 @@ __all__ = [
     "postprocess_text",
     "decode_record_content",
     "ensure_built",
+    "indexed_volume_count",
+    "search_all_volumes",
     "search_records",
 ]

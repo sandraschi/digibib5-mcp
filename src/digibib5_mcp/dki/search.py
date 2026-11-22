@@ -120,3 +120,58 @@ def search_records(
         return [(r, s) for r, s in rows], rebuilt
     finally:
         con.close()
+
+
+def indexed_volume_count(db_path: Path | None = None) -> int:
+    """Return number of volumes indexed in search.db (0 if db does not exist)."""
+    db = db_path or _db_path()
+    if not db.is_file():
+        return 0
+    con = sqlite3.connect(db)
+    try:
+        row = con.execute("SELECT COUNT(*) FROM meta").fetchone()
+        return int(row[0]) if row else 0
+    except sqlite3.OperationalError:
+        return 0
+    finally:
+        con.close()
+
+
+def search_all_volumes(
+    query: str,
+    limit: int = 20,
+    db_path: Path | None = None,
+) -> tuple[list[tuple[str, int, str]], int]:
+    """Search across all already-indexed volumes in search.db.
+
+    Returns ([(volume_id, record_id, snippet)], indexed_volume_count).
+    """
+    query = (query or "").strip()
+    if not query:
+        return [], indexed_volume_count(db_path)
+    db = db_path or _db_path()
+    if not db.is_file():
+        return [], 0
+    limit = max(1, min(limit, 100))
+    con = sqlite3.connect(db)
+    sql = (
+        "SELECT d.volume_id, d.record_id, snippet(docs_fts, 0, '«', '»', ' … ', 12)"
+        " FROM docs_fts JOIN docs d ON d.rowid = docs_fts.rowid"
+        " WHERE docs_fts MATCH ?"
+        " ORDER BY rank LIMIT ?"
+    )
+    try:
+        cnt_row = con.execute("SELECT COUNT(*) FROM meta").fetchone()
+        indexed = int(cnt_row[0]) if cnt_row else 0
+        try:
+            rows = con.execute(sql, (query, limit)).fetchall()
+        except sqlite3.OperationalError:
+            terms = [w for w in query.split() if w.strip('*"')]
+            if not terms:
+                return [], indexed
+            rows = con.execute(sql, (" AND ".join(f'"{w}"' for w in terms), limit)).fetchall()
+        return [(str(v), int(r), str(s)) for v, r, s in rows], indexed
+    except sqlite3.OperationalError:
+        return [], 0
+    finally:
+        con.close()
