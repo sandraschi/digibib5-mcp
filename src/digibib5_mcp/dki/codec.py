@@ -95,7 +95,7 @@ _LEAD_SPLIT = set('\xab\x8b\x84"')
 _INLINE_PUNCT = b".,;:!?)('\xbb\xab-/\x95"
 
 
-def decode_tokens(buf: bytes) -> list[tuple]:
+def decode_tokens(buf: bytes, encoding: str = CP) -> list[tuple]:
     """Tokenize a record's content region into word / br / para / ctl tokens."""
     out: list[tuple] = []
     i, n = 0, len(buf)
@@ -109,7 +109,7 @@ def decode_tokens(buf: bytes) -> list[tuple]:
             while j < n and (32 <= buf[j] < 127 or buf[j] >= 160):
                 j += 1
             if j > i + 1:
-                lit = buf[i + 1 : j].decode(CP, "replace")
+                lit = buf[i + 1 : j].decode(encoding, "replace")
                 if lit.strip():
                     out.append(("word", lit))
             i = j if j > i + 1 else i + 1
@@ -136,7 +136,7 @@ def decode_tokens(buf: bytes) -> list[tuple]:
                 while j < n and buf[j] in _INLINE_PUNCT:
                     punct.append(buf[j])
                     j += 1
-                word = bytes(chunk + bytes(punct)).decode(CP, "replace")
+                word = bytes(chunk + bytes(punct)).decode(encoding, "replace")
                 # Split glued opening quotes ("«Meister" -> "«" + "Meister").
                 while len(word) > 1 and word[0] in _LEAD_SPLIT:
                     out.append(("word", word[0]))
@@ -310,9 +310,9 @@ def _strip_head_marks(tokens: list[tuple]) -> list[tuple]:
     return out
 
 
-def decode_record_content(content: bytes) -> str:
+def decode_record_content(content: bytes, encoding: str = CP) -> str:
     """Convenience: tokenize + render a record's content region to text."""
-    tokens = decode_tokens(content)
+    tokens = decode_tokens(content, encoding=encoding)
     # Drop a leading running-head / stylesheet tag if present.
     for idx, t in enumerate(tokens):
         if t[0] == "word":

@@ -106,7 +106,19 @@ class DigibibVolume:
     @property
     def descriptor(self) -> dict[str, str]:
         if self._descriptor is None:
-            raw = self._path("DIGIBIB.TXT").read_bytes().decode(CP, "replace")
+            raw_bytes = self._path("DIGIBIB.TXT").read_bytes()
+            # Probe declared encoding; Cyrillic discs (e.g. DB006) declare
+            # encoding="ISO-8859-5" for TEXT.DKI while DIGIBIB.TXT and TREE.DKI
+            # are Windows-1251 (cp1251).
+            probe = raw_bytes.decode("latin-1")
+            ini_cp = CP
+            for ln in probe.splitlines():
+                if ln.strip().lower().startswith("encoding="):
+                    decl = ln.split("=", 1)[1].strip().strip('"').lower()
+                    if any(k in decl for k in ("8859-5", "1251", "koi8")):
+                        ini_cp = "cp1251"
+                    break
+            raw = raw_bytes.decode(ini_cp, "replace")
             # DIGIBIB.TXT is a sectioned INI. The volume identity (real title)
             # lives in [Default]; later sections like [Stichwoerter] reuse the
             # same key names ("Caption=Verzeichnisse" for the index view). A
@@ -131,6 +143,18 @@ class DigibibVolume:
             merged.update(sections.get("Default", {}))
             self._descriptor = merged
         return self._descriptor
+
+    @property
+    def text_encoding(self) -> str:
+        decl = self.descriptor.get("encoding", "").strip().strip('"')
+        return decl or CP
+
+    @property
+    def toc_encoding(self) -> str:
+        decl = self.text_encoding.lower()
+        if any(k in decl for k in ("8859-5", "1251", "koi8")):
+            return "cp1251"
+        return CP
 
     @property
     def title(self) -> str:
@@ -205,7 +229,7 @@ class DigibibVolume:
         return start
 
     def _load_toc(self) -> None:
-        lines = self._path("TREE.DKI").read_bytes().decode(CP, "replace").split("\r\n")
+        lines = self._path("TREE.DKI").read_bytes().decode(self.toc_encoding, "replace").split("\r\n")
         nodes: list[TocNode] = []
         for ln in lines:
             if ln == "":
@@ -345,7 +369,7 @@ class DigibibVolume:
 
     def record_text(self, i: int) -> str:
         """Decoded text of record i (v1 codec - see codec.py caveats)."""
-        return decode_record_content(self._content_region(self.raw_record(i)))
+        return decode_record_content(self._content_region(self.raw_record(i)), encoding=self.text_encoding)
 
     def _compute_extents(self) -> list[tuple[int | None, int | None]]:
         """All chapter extents in one right-to-left pass (amortized O(n)).
